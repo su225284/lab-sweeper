@@ -66,3 +66,32 @@ button {
 .cell-mine {
   background: #fecaca;
 }
+
+.board-wrapper {
+  position: relative;
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.game-over-panel {
+  position: absolute;
+  z-index: 10;
+  display: grid;
+  gap: 12px;
+  place-items: center;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.game-over-panel button {
+  padding: 10px 20px;
+}
+
+.clear-message {
+  margin: 0;
+  color: #16a34a;
+  font-weight: bold;
+  font-size: 24px;
+}
