@@ -13,10 +13,11 @@ export function createBoard(size: number, mineCount: number): Cell[] {
     const count = neighbors.filter((neighborId) => mineIds.has(neighborId)).length
 
     return {
-      id,
-      opened: false,
-      hasMine: mineIds.has(id),
-      count,
-    }
+        id,
+        opened: false,
+        flagged: false,
+        hasMine: mineIds.has(id),
+        count,
+      }
   })
 }

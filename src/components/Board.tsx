@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createBoard } from '../game/createBoard'
-import type { Cell } from '../game/types'
 import { openCells } from '../game/openCells'
+import type { Cell } from '../game/types'
 
 const SIZE = 5
 const MINE_COUNT = 5
@@ -14,10 +14,10 @@ export default function Board() {
 
   const openCell = (id: number) => {
     if (gameOver) return
-  
+
     const targetCell = cells.find((cell) => cell.id === id)
-    if (!targetCell || targetCell.opened) return
-  
+    if (!targetCell || targetCell.opened || targetCell.flagged) return
+
     if (targetCell.hasMine) {
       setGameOver(true)
       setCells((currentCells) =>
@@ -27,9 +27,19 @@ export default function Board() {
       )
       return
     }
-  
-    // ←ここだけ変更！
+
     setCells((currentCells) => openCells(currentCells, id, SIZE))
+  }
+
+  const toggleFlag = (id: number) => {
+    if (gameOver) return
+
+    setCells((currentCells) =>
+      currentCells.map((cell) => {
+        if (cell.id !== id || cell.opened) return cell
+        return { ...cell, flagged: !cell.flagged }
+      }),
+    )
   }
 
   const restartGame = () => {
@@ -54,8 +64,13 @@ export default function Board() {
               cell.opened && cell.hasMine ? 'cell-mine' : ''
             }`}
             onClick={() => openCell(cell.id)}
+            onContextMenu={(event) => {
+              event.preventDefault()
+              toggleFlag(cell.id)
+            }}
             disabled={gameOver}
           >
+            {!cell.opened && cell.flagged && '🚩'}
             {cell.opened && cell.hasMine && '💣'}
             {cell.opened && !cell.hasMine && cell.count > 0 && cell.count}
           </button>
