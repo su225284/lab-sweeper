@@ -3,6 +3,8 @@ import { createBoard } from '../game/createBoard'
 import { openAround } from '../game/openAround'
 import { openCells } from '../game/openCells'
 import type { Cell } from '../game/types'
+import CellButton from './CellButton'
+import GameOverlay from './GameOverlay'
 
 const SIZE = 5
 const MINE_COUNT = 5
@@ -84,38 +86,17 @@ export default function Board() {
 
   return (
     <div className="board-wrapper">
-      {gameStatus === 'gameOver' && (
-        <div className="game-over-panel">
-          <p className="game-over">GAME OVER</p>
-          <button onClick={restartGame}>Restart</button>
-        </div>
-      )}
-
-      {gameStatus === 'cleared' && (
-        <div className="game-over-panel">
-          <p className="clear-message">CLEAR!</p>
-          <button onClick={restartGame}>Next Challenge</button>
-        </div>
-      )}
-
+      <GameOverlay status={gameStatus} onRestart={restartGame} />
+  
       <div className="board-grid">
         {cells.map((cell) => (
-          <button
+          <CellButton
             key={cell.id}
-            className={`cell ${cell.opened ? 'cell-opened' : ''} ${
-              cell.opened && cell.hasMine ? 'cell-mine' : ''
-            }`}
-            onClick={() => openCell(cell.id)}
-            onContextMenu={(event) => {
-              event.preventDefault()
-              toggleFlag(cell.id)
-            }}
+            cell={cell}
             disabled={gameStatus !== 'playing'}
-          >
-            {!cell.opened && cell.flagged && '🚩'}
-            {cell.opened && cell.hasMine && '💣'}
-            {cell.opened && !cell.hasMine && cell.count > 0 && cell.count}
-          </button>
+            onOpen={openCell}
+            onToggleFlag={toggleFlag}
+          />
         ))}
       </div>
     </div>
