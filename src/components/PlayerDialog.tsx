@@ -1,6 +1,6 @@
 import Button from './Button'
+import { getMembers } from '../game/memberManager'
 
-const MEMBERS = ['山田', '田中', '鈴木', '佐藤']
 
 type Props = {
   open: boolean
@@ -9,6 +9,8 @@ type Props = {
 }
 
 export default function PlayerDialog({ open, onClose, onStart }: Props) {
+  const members = getMembers()
+
   if (!open) return null
 
   return (
@@ -17,7 +19,7 @@ export default function PlayerDialog({ open, onClose, onStart }: Props) {
         <h2>プレイヤーを選択</h2>
 
         <div className="player-list">
-          {MEMBERS.map((name) => (
+          {members.map((name) => (
             <Button
               fullWidth
               variant="secondary"

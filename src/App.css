@@ -99,40 +99,127 @@ button {
   z-index: 1;
 
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(var(--grid-size), 1fr);
+  gap: 0;
   width: 100%;
   max-width: 520px;
+
+  padding: 8px;
+  background: #8b8b8b;
+  border: 4px solid #8b8b8b;
 }
 
 .cell {
   width: 100%;
   aspect-ratio: 1 / 1;
-  border: none;
-  border-radius: 8px;
-  background: #d1d5db;
+  border: 0;
+  border-radius: 0;
+  background: #c0c0c0;
   cursor: pointer;
 
   display: grid;
   place-items: center;
 
-  font-size: 28px;
+  font-size: 34px;
   line-height: 1;
   padding: 0;
 
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
+
+  box-shadow:
+  inset var(--bevel-size) var(--bevel-size) 0 #ffffff,
+  inset calc(var(--bevel-size) * -1)
+        calc(var(--bevel-size) * -1)
+        0 #7b7b7b;
+
+  overflow: hidden;
 }
 
 .cell:hover {
-  background: #9ca3af;
+  background: #c8c8c8;
+}
+
+.cell:active {
+  box-shadow:
+    inset calc(var(--bevel-size) * 0.6) calc(var(--bevel-size) * 0.6) 0 #7b7b7b,
+    inset calc(var(--bevel-size) * -0.6) calc(var(--bevel-size) * -0.6) 0 #ffffff;
 }
 
 .cell-opened {
-  background: #f9fafb;
-  color: #2563eb;
-  font-weight: bold;
+  background: #c0c0c0;
+  color: #0000ff;
+  font-weight: 900;
+
+  box-shadow: inset 1px 1px 0 #7b7b7b;
+}
+
+.cell-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--number-size);
+  font-weight: 900;
+  line-height: 1;
+
+  text-shadow:
+    0.5px 0 0 currentColor,
+    -0.5px 0 0 currentColor;
+}
+
+.cell-number-1 {
+  color: #0000ff;
+}
+
+.cell-number-2 {
+  color: #008000;
+}
+
+.cell-number-3 {
+  color: #ff0000;
+}
+
+.cell-number-4 {
+  color: #000080;
+}
+
+.cell-number-5 {
+  color: #800000;
+}
+
+.cell-number-6 {
+  color: #008080;
+}
+
+.cell-number-7 {
+  color: #000000;
+}
+
+.cell-number-8 {
+  color: #808080;
+}
+
+.cell-mine {
+  background: #fecaca;
+}
+
+.cell-icon {
+  display: grid;
+  place-items: center;
+
+  width: 100%;
+  height: 100%;
+
+  font-size: var(--icon-size);
+  line-height: 1;
+
+  overflow: hidden;
 }
 
 .game-over {
@@ -140,10 +227,6 @@ button {
   color: #dc2626;
   font-weight: bold;
   font-size: 24px;
-}
-
-.cell-mine {
-  background: #fecaca;
 }
 
 .board-wrapper {
@@ -622,4 +705,128 @@ button {
 .settings-danger-zone {
   border-color: #f3c7c7;
   background: #fffafa;
+}
+
+.settings-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-stepper .app-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 1.3rem;
+}
+
+.settings-size-value {
+  min-width: 32px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+
+  z-index: 3000;
+
+  padding: 12px 18px;
+
+  border-radius: 14px;
+
+  background: rgba(32, 32, 32, 0.92);
+  color: white;
+
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.settings-item.settings-item-vertical {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.settings-item.settings-item-vertical > div:first-child {
+  justify-self: stretch;
+}
+
+.settings-item.settings-item-vertical .settings-stepper {
+  justify-content: center;
+}
+
+.settings-item.settings-item-vertical .app-button-full {
+  width: min(220px, 100%);
+}
+
+.settings-item.settings-item-vertical > .settings-stepper {
+  justify-self: center;
+}
+
+.settings-item.settings-item-vertical > .app-button-full {
+  justify-self: center;
+}
+
+.member-add-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.member-add-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+.member-add-row input:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #3b82f6;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.member-row .app-button {
+  flex-shrink: 0;
+}
+
+.member-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.member-card {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-card .app-button {
+  padding: 8px 12px;
+  font-size: 0.9rem;
 }

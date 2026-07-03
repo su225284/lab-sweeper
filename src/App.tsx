@@ -7,14 +7,29 @@ import Modal from './components/Modal'
 import RulePanel from './components/RulePanel'
 import Button from './components/Button'
 import SettingsPanel from './components/SettingsPanel'
+import Toast from './components/Toast'
 
 type ActivePanel = 'history' | 'rules' | 'settings' | null
 
 function App() {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
+  const [settingsVersion, setSettingsVersion] = useState(0)
+  const [toastMessage, setToastMessage] = useState('')
 
   const closePanel = () => {
     setActivePanel(null)
+  }
+
+  const showToast = (message: string) => {
+    setToastMessage(message)
+  
+    window.setTimeout(() => {
+      setToastMessage('')
+    }, 3000)
+  }
+
+  const handleChangedSettings = () => {
+    setSettingsVersion((current) => current + 1)
   }
 
   return (
@@ -25,7 +40,10 @@ function App() {
           <p>One Lab. One Board.</p>
         </header>
 
-        <Board />
+        <Board
+          settingsVersion={settingsVersion}
+          showToast={showToast}
+        />
 
         <RankingPanel />
 
@@ -67,10 +85,16 @@ function App() {
 
       {activePanel === 'settings' && (
         <Modal title="設定" onClose={closePanel}>
-          <SettingsPanel />
+          <SettingsPanel
+            onDeletedHistory={closePanel}
+            onChangedSettings={handleChangedSettings}
+            onApplySettings={closePanel}
+            showToast={showToast}
+          />
         </Modal>
       )}
-            
+
+      {toastMessage && <Toast message={toastMessage} />}
     </main>
   )
 }

@@ -34,7 +34,10 @@ function HistoryPanel() {
           {historyList.map((history) => (
             <Card key={history.number} className="history-card">
               <div className="history-card-header">
-                <strong>Challenge #{history.number}</strong>
+              <strong>
+                Challenge #{history.number}
+                {history.size ? `　${history.size}×${history.size}` : ''}
+              </strong>
             
                 <span className={`history-status ${history.status}`}>
                   {formatStatus(history.status)}

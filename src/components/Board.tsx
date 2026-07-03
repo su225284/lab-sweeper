@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { calculateNumbers } from '../game/calculateNumbers'
 import {
   createInitialChallenge,
   createNextChallenge,
-  DEFAULT_MINE_COUNT,
-  DEFAULT_SIZE,
+  recreateChallengeBoard,
   DEFAULT_TIME_LIMIT_SECONDS,
 } from '../game/challengeFactory'
 import { openAround } from '../game/openAround'
@@ -24,9 +24,6 @@ import {
   type ChallengeDocument,
 } from '../services/challengeService'
 
-
-const SIZE = DEFAULT_SIZE
-const MINE_COUNT = DEFAULT_MINE_COUNT
 const TIME_LIMIT_SECONDS = DEFAULT_TIME_LIMIT_SECONDS
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
@@ -37,7 +34,16 @@ function isCleared(cells: Cell[]) {
   return cells.every((cell) => cell.hasMine || cell.opened)
 }
 
-export default function Board() {
+type BoardProps = {
+  settingsVersion: number
+  showToast: (message: string) => void
+}
+
+
+export default function Board({
+  settingsVersion,
+  showToast,
+}: BoardProps) {
   const [cells, setCells] = useState<Cell[]>(() =>
     createInitialChallenge().cells
   )
@@ -50,6 +56,26 @@ export default function Board() {
     createInitialChallenge()
   )
   const [localPlayer, setLocalPlayer] = useState<string | null>(null)
+  const boardWrapperRef = useRef<HTMLDivElement>(null)
+  const [boardWidth, setBoardWidth] = useState(520)
+
+  const SIZE = challenge.size
+  const MINE_COUNT = challenge.mineCount
+
+  useEffect(() => {
+    const element = boardWrapperRef.current
+    if (!element) return
+  
+    const resizeObserver = new ResizeObserver(() => {
+      setBoardWidth(element.clientWidth)
+    })
+  
+    resizeObserver.observe(element)
+  
+    setBoardWidth(element.clientWidth)
+  
+    return () => resizeObserver.disconnect()
+  }, [])
 
   useEffect(() => {
     const unsubscribe = subscribeCurrentChallenge(async (savedChallenge) => {
@@ -76,6 +102,40 @@ export default function Board() {
   
     return unsubscribe
   }, [])
+
+  useEffect(() => {
+    if (settingsVersion === 0) return
+  
+    // プレイ中や終了演出中は現在のChallengeを変更しない
+    if (challenge.status !== 'ready') {
+      showToast('盤面サイズは次のChallengeから反映されます。')
+      return
+    }
+  
+    // 誰かが参加済みなら現在のChallengeは変更しない
+    if (
+      challenge.selectedPlayer !== null ||
+      challenge.participants.length > 0
+    ) {
+      showToast('盤面サイズは次のChallengeから反映されます。')
+      return
+    }
+  
+    const nextChallenge = recreateChallengeBoard(challenge)
+
+    setChallenge(nextChallenge)
+    setCells(nextChallenge.cells)
+    setBoardReady(false)
+    setGameStatus('ready')
+    setRemainingSeconds(nextChallenge.remainingSeconds)
+    
+    saveCurrentChallenge(nextChallenge)
+  
+    showToast(
+      `盤面サイズを ${nextChallenge.size}×${nextChallenge.size} に変更しました。`,
+    )
+  }, [settingsVersion])
+
 
   useEffect(() => {
     if (gameStatus !== 'playing' || overlayType) return
@@ -207,6 +267,8 @@ export default function Board() {
  
   
     if (!boardReady) {
+      console.log('Board size:', SIZE)
+      console.log('Mine count:', MINE_COUNT)
       const boardWithMines = placeMines(cells, SIZE, MINE_COUNT, id)
       const boardWithNumbers = calculateNumbers(boardWithMines, SIZE)
       const openedBoard = openCells(boardWithNumbers, id, SIZE)
@@ -392,9 +454,21 @@ const toggleFlag = (id: number) => {
   challenge.selectedPlayer !== null &&
   localPlayer !== challenge.selectedPlayer
 
+  const cellSize = boardWidth / SIZE
+  const numberSize = Math.max(10, cellSize * 0.72)
+  const iconSize = numberSize * 0.9
+  const bevelSize = Math.max(1, Math.min(6, cellSize * 0.08))
+  
+  const boardStyle = {
+    '--grid-size': SIZE,
+    '--number-size': `${numberSize}px`,
+    '--icon-size': `${iconSize}px`,
+    '--bevel-size': `${bevelSize}px`,
+  } as CSSProperties
+
 
   return (
-    <div className="board-wrapper">
+    <div className="board-wrapper" ref={boardWrapperRef}>
       <GameOverlay
         status={gameStatus}
         overlayType={overlayType}
@@ -415,11 +489,14 @@ const toggleFlag = (id: number) => {
       </div>
     </Card>
 
+
     <StatusBar
-        remainingMineCount={MINE_COUNT - cells.filter((cell) => cell.flagged).length}
-        participantCount={challenge.participants.length}
-        remainingSeconds={remainingSeconds}
-        />
+      remainingMineCount={
+        challenge.mineCount - cells.filter((cell) => cell.flagged).length
+      }
+      participantCount={challenge.participants.length}
+      remainingSeconds={remainingSeconds}
+    />
     
 
     <div className="play-action-row">
@@ -436,7 +513,7 @@ const toggleFlag = (id: number) => {
     />
     </div>
 
-    <div className="board-grid">
+    <div className="board-grid" style={boardStyle}>
         {cells.map((cell) => (
           <CellButton
             key={cell.id}

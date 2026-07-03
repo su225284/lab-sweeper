@@ -72,9 +72,17 @@ export default function CellButton({
       onPointerCancel={clearLongPressTimer}
       disabled={disabled}
     >
-      {!cell.opened && cell.flagged && '🚩'}
-      {cell.opened && cell.hasMine && '💣'}
-      {cell.opened && !cell.hasMine && cell.count > 0 && cell.count}
+      {!cell.opened && cell.flagged && (
+        <span className="cell-icon">🚩</span>
+      )}
+      {cell.opened && cell.hasMine && (
+        <span className="cell-icon">💣</span>
+      )}
+      {cell.opened && !cell.hasMine && cell.count > 0 && (
+        <span className={`cell-number cell-number-${cell.count}`}>
+          {cell.count}
+        </span>
+      )}
     </button>
   )
 }
