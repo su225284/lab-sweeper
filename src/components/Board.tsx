@@ -35,7 +35,6 @@ export default function Board() {
   const [remainingSeconds, setRemainingSeconds] = useState(TIME_LIMIT_SECONDS)
   const [boardReady, setBoardReady] = useState(false)
   const [overlayType, setOverlayType] = useState<OverlayType>(null)
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false)
   const [challenge, setChallenge] = useState<ChallengeDocument>({
     number: 1,
@@ -107,24 +106,25 @@ export default function Board() {
   }, [overlayType])
 
   const startPlaying = (playerName: string) => {
-    setSelectedPlayer(playerName)
+    setChallenge((current) => ({
+      ...current,
+      selectedPlayer: playerName,
+      status: 'playing',
+    }))
+  
     setIsPlayerDialogOpen(false)
     setGameStatus('playing')
-    setChallenge((current) => ({
-        ...current,
-        selectedPlayer: playerName,
-        status: 'playing',
-      }))
   }
 
   const addCurrentPlayerToParticipants = () => {
-    if (!selectedPlayer) return
+    const playerName = challenge.selectedPlayer
+    if (!playerName) return
   
     setChallenge((current) => ({
       ...current,
-      participants: current.participants.includes(selectedPlayer)
+      participants: current.participants.includes(playerName)
         ? current.participants
-        : [...current.participants, selectedPlayer],
+        : [...current.participants, playerName],
     }))
   }
 
@@ -244,7 +244,7 @@ export default function Board() {
       size: SIZE,
       mineCount: MINE_COUNT,
       participants: challenge.participants,
-      selectedPlayer,
+      selectedPlayer: challenge.selectedPlayer,
       status,
       remainingSeconds,
       cells,
@@ -272,9 +272,9 @@ export default function Board() {
         </div>
 
         <div className="current-player">
-            {selectedPlayer && gameStatus === 'playing'
-            ? `👤 ${selectedPlayer}さんがプレイ中`
-            : '👤 次のプレイヤーを待っています'}
+        {challenge.selectedPlayer && gameStatus === 'playing'
+        ? `👤 ${challenge.selectedPlayer}さんがプレイ中`
+        : '👤 次のプレイヤーを待っています'}
         </div>
     </div>
 
