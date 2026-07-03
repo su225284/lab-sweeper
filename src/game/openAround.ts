@@ -2,11 +2,20 @@ import { getNeighbors } from './getNeighbors'
 import { openCells } from './openCells'
 import type { Cell } from './types'
 
-export function openAround(cells: Cell[], id: number, size: number): Cell[] {
+type OpenAroundResult = {
+  cells: Cell[]
+  exploded: boolean
+}
+
+export function openAround(
+  cells: Cell[],
+  id: number,
+  size: number,
+): OpenAroundResult {
   const targetCell = cells[id]
 
   if (!targetCell || !targetCell.opened || targetCell.hasMine) {
-    return cells
+    return { cells, exploded: false }
   }
 
   const neighborIds = getNeighbors(id, size)
@@ -15,10 +24,11 @@ export function openAround(cells: Cell[], id: number, size: number): Cell[] {
   ).length
 
   if (flaggedCount !== targetCell.count) {
-    return cells
+    return { cells, exploded: false }
   }
 
   let nextCells = cells
+  let exploded = false
 
   for (const neighborId of neighborIds) {
     const neighborCell = nextCells[neighborId]
@@ -28,13 +38,15 @@ export function openAround(cells: Cell[], id: number, size: number): Cell[] {
     }
 
     if (neighborCell.hasMine) {
+      exploded = true
       nextCells = nextCells.map((cell) =>
         cell.id === neighborId ? { ...cell, opened: true } : cell,
       )
-    } else {
-      nextCells = openCells(nextCells, neighborId, size)
+      continue
     }
+
+    nextCells = openCells(nextCells, neighborId, size)
   }
 
-  return nextCells
+  return { cells: nextCells, exploded }
 }

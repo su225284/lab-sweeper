@@ -11,10 +11,10 @@ import PlayerDialog from './PlayerDialog'
 import StatusBar from './StatusBar'
 import ActionButton from './ActionButton'
 import {
-    saveCurrentChallenge,
-    type ChallengeDocument,
-  } from '../services/challengeService'
-import { loadCurrentChallenge } from '../services/challengeService'
+  loadCurrentChallenge,
+  saveCurrentChallenge,
+  type ChallengeDocument,
+} from '../services/challengeService'
 
 
 const SIZE = 5
@@ -46,6 +46,22 @@ export default function Board() {
     remainingSeconds: TIME_LIMIT_SECONDS,
     cells: createBoard(SIZE),
   })
+
+  useEffect(() => {
+    const loadChallenge = async () => {
+      const savedChallenge = await loadCurrentChallenge()
+  
+      if (!savedChallenge) return
+  
+      setChallenge(savedChallenge)
+      setCells(savedChallenge.cells)
+      setRemainingSeconds(savedChallenge.remainingSeconds)
+      setGameStatus(savedChallenge.status)
+      setBoardReady(savedChallenge.cells.some((cell) => cell.opened))
+    }
+  
+    loadChallenge()
+  }, [])
 
   useEffect(() => {
     if (gameStatus !== 'playing' || overlayType) return
@@ -152,16 +168,22 @@ export default function Board() {
   
       setCells(openedBoard)
       setBoardReady(true)
-      setGameStatus(isCleared(openedBoard) ? 'cleared' : 'playing')
+  
+      if (isCleared(openedBoard)) {
+        setGameStatus('cleared')
+      }
+  
       return
     }
   
     if (targetCell.opened) {
       setCells((currentCells) => {
-        const nextCells = openAround(currentCells, id, SIZE)
+        const result = openAround(currentCells, id, SIZE)
+        const nextCells = result.cells
   
-        if (nextCells.some((cell) => cell.opened && cell.hasMine)) {
+        if (result.exploded) {
           setOverlayType('boom')
+          return nextCells
         }
   
         if (isCleared(nextCells)) {
@@ -170,6 +192,7 @@ export default function Board() {
   
         return nextCells
       })
+  
       return
     }
   
@@ -226,11 +249,22 @@ export default function Board() {
       }))
   }
 
-  const returnToReady = () => {
+  const returnToReady = async () => {
+    const nextChallenge = {
+      ...challenge,
+      selectedPlayer: null,
+      status: 'ready' as const,
+      remainingSeconds: TIME_LIMIT_SECONDS,
+      cells,
+    }
+  
     setGameStatus('ready')
-    setBoardReady(false)
     setRemainingSeconds(TIME_LIMIT_SECONDS)
     setOverlayType(null)
+    setChallenge(nextChallenge)
+    setBoardReady(cells.some((cell) => cell.opened))
+  
+    await saveCurrentChallenge(nextChallenge)
   }
 
   const quitPlaying = async () => {
@@ -240,21 +274,11 @@ export default function Board() {
 
   const saveCurrentState = async (status = gameStatus) => {
     await saveCurrentChallenge({
-      number: challenge.number,
-      size: SIZE,
-      mineCount: MINE_COUNT,
-      participants: challenge.participants,
-      selectedPlayer: challenge.selectedPlayer,
+      ...challenge,
       status,
       remainingSeconds,
       cells,
     })
-  }
-
-  const loadTest = async () => {
-    const challenge = await loadCurrentChallenge()
-  
-    console.log(challenge)
   }
 
 
@@ -277,10 +301,6 @@ export default function Board() {
         : '👤 次のプレイヤーを待っています'}
         </div>
     </div>
-
-    <button onClick={loadTest}>
-        Firestore読み込みテスト
-        </button>
 
     <StatusBar
         remainingMineCount={MINE_COUNT - cells.filter((cell) => cell.flagged).length}

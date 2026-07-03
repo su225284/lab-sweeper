@@ -1,10 +1,11 @@
 import {
-    doc,
-    getDoc,
-    serverTimestamp,
-    setDoc,
-    type Timestamp,
-  } from 'firebase/firestore'
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  type Timestamp,
+} from 'firebase/firestore'
   
   import { db } from '../firebase'
   import type { Cell } from '../game/types'
@@ -44,4 +45,14 @@ import {
     }
   
     return snapshot.data() as ChallengeDocument
+  }
+
+  export function subscribeCurrentChallenge(
+    onChange: (challenge: ChallengeDocument) => void,
+  ) {
+    return onSnapshot(currentChallengeRef, (snapshot) => {
+      if (!snapshot.exists()) return
+  
+      onChange(snapshot.data() as ChallengeDocument)
+    })
   }
