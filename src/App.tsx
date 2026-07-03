@@ -6,6 +6,7 @@ import HistoryPanel from './components/HistoryPanel'
 import Modal from './components/Modal'
 import RulePanel from './components/RulePanel'
 import Button from './components/Button'
+import SettingsPanel from './components/SettingsPanel'
 
 type ActivePanel = 'history' | 'rules' | 'settings' | null
 
@@ -63,7 +64,13 @@ function App() {
           <RulePanel />
         </Modal>
       )}
-      
+
+      {activePanel === 'settings' && (
+        <Modal title="設定" onClose={closePanel}>
+          <SettingsPanel />
+        </Modal>
+      )}
+            
     </main>
   )
 }
