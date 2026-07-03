@@ -185,10 +185,8 @@ button {
 }
 
 .challenge-title {
-  width: 100%;
-  max-width: 360px;
-  margin-bottom: 8px;
-  font-weight: bold;
+  margin: 0;
+  font-weight: 800;
   font-size: 20px;
   text-align: center;
 }
@@ -226,6 +224,50 @@ button {
 }
 
 .current-player {
-  text-align: center;
-  font-weight: bold;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: #4b5563;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.play-action-row {
+  height: 56px;
+  display: grid;
+  place-items: center;
+}
+
+.action-button,
+.action-button-placeholder {
+  width: min(100%, 360px);
+  height: 48px;
+  border-radius: 14px;
+}
+
+.action-button {
+  border: none;
+  font-weight: 800;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.action-button-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.action-button-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.challenge-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+  display: grid;
+  gap: 6px;
 }

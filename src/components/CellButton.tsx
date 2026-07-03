@@ -5,6 +5,7 @@ import type { Cell } from '../game/types'
 type Props = {
   cell: Cell
   disabled: boolean
+  canFlag: boolean
   onOpen: (id: number) => void
   onToggleFlag: (id: number) => void
 }
@@ -12,6 +13,7 @@ type Props = {
 export default function CellButton({
   cell,
   disabled,
+  canFlag,
   onOpen,
   onToggleFlag,
 }: Props) {
@@ -27,12 +29,17 @@ export default function CellButton({
 
   const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
+  
+    if (!canFlag) return
+  
     onToggleFlag(cell.id)
   }
 
   const handlePointerDown = () => {
+    if (!canFlag) return
+  
     longPressedRef.current = false
-
+  
     longPressTimerRef.current = window.setTimeout(() => {
       longPressedRef.current = true
       onToggleFlag(cell.id)

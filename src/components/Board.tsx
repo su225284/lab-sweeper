@@ -9,16 +9,20 @@ import CellButton from './CellButton'
 import GameOverlay from './GameOverlay'
 import PlayerDialog from './PlayerDialog'
 import StatusBar from './StatusBar'
+import ActionButton from './ActionButton'
+import {
+    saveCurrentChallenge,
+    type ChallengeDocument,
+  } from '../services/challengeService'
+import { loadCurrentChallenge } from '../services/challengeService'
+
 
 const SIZE = 5
 const MINE_COUNT = 5
 const TIME_LIMIT_SECONDS = 60
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'timeUp'
-type Challenge = {
-    number: number
-    participants: string[]
-  }
+
 type OverlayType = 'boom' | null
 
 function isCleared(cells: Cell[]) {
@@ -33,13 +37,19 @@ export default function Board() {
   const [overlayType, setOverlayType] = useState<OverlayType>(null)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false)
-  const [challenge, setChallenge] = useState<Challenge>({
+  const [challenge, setChallenge] = useState<ChallengeDocument>({
     number: 1,
+    size: SIZE,
+    mineCount: MINE_COUNT,
     participants: [],
+    selectedPlayer: null,
+    status: 'ready',
+    remainingSeconds: TIME_LIMIT_SECONDS,
+    cells: createBoard(SIZE),
   })
 
   useEffect(() => {
-    if (gameStatus !== 'playing') return
+    if (gameStatus !== 'playing' || overlayType) return
 
     const timerId = window.setInterval(() => {
       setRemainingSeconds((currentSeconds) => {
@@ -60,11 +70,13 @@ export default function Board() {
 
   useEffect(() => {
     if (gameStatus !== 'timeUp') return
-
+  
+    saveCurrentState('timeUp')
+  
     const timeoutId = window.setTimeout(() => {
       returnToReady()
     }, 3000)
-
+  
     return () => {
       window.clearTimeout(timeoutId)
     }
@@ -72,17 +84,23 @@ export default function Board() {
 
   useEffect(() => {
     if (overlayType !== 'boom') return
-
+  
     const timeoutId = window.setTimeout(() => {
-        setCells(createBoard(SIZE))
-        setBoardReady(false)
-        setOverlayType(null)
-        setChallenge((current) => ({
-            number: current.number + 1,
-            participants: [],
-          }))
+      setCells(createBoard(SIZE))
+      setBoardReady(false)
+      setOverlayType(null)
+  
+      setChallenge((current) => ({
+        ...current,
+        number: current.number + 1,
+        participants: [],
+        selectedPlayer: null,
+        status: 'ready',
+        remainingSeconds: TIME_LIMIT_SECONDS,
+        cells: createBoard(SIZE),
+      }))
     }, 1200)
-
+  
     return () => {
       window.clearTimeout(timeoutId)
     }
@@ -90,59 +108,71 @@ export default function Board() {
 
   const startPlaying = (playerName: string) => {
     setSelectedPlayer(playerName)
-    setChallenge((current) => ({
-        ...current,
-        participants: current.participants.includes(playerName)
-          ? current.participants
-          : [...current.participants, playerName],
-      }))
     setIsPlayerDialogOpen(false)
     setGameStatus('playing')
+    setChallenge((current) => ({
+        ...current,
+        selectedPlayer: playerName,
+        status: 'playing',
+      }))
+  }
+
+  const addCurrentPlayerToParticipants = () => {
+    if (!selectedPlayer) return
+  
+    setChallenge((current) => ({
+      ...current,
+      participants: current.participants.includes(selectedPlayer)
+        ? current.participants
+        : [...current.participants, selectedPlayer],
+    }))
   }
 
   const openCell = (id: number) => {
+    if (overlayType) return
+  
+    if (gameStatus === 'timeUp' || gameStatus === 'cleared') return
+  
     if (gameStatus === 'ready') {
-        setIsPlayerDialogOpen(true)
-        return
-      }
-    if (gameStatus === 'cleared' || gameStatus === 'timeUp' || overlayType) {
+      setIsPlayerDialogOpen(true)
       return
     }
-
+  
+    if (gameStatus !== 'playing') return
+  
     const targetCell = cells.find((cell) => cell.id === id)
     if (!targetCell || targetCell.flagged) return
-
+  
     if (!boardReady) {
+      addCurrentPlayerToParticipants()
+  
       const boardWithMines = placeMines(cells, SIZE, MINE_COUNT, id)
       const boardWithNumbers = calculateNumbers(boardWithMines, SIZE)
       const openedBoard = openCells(boardWithNumbers, id, SIZE)
-
+  
       setCells(openedBoard)
       setBoardReady(true)
       setGameStatus(isCleared(openedBoard) ? 'cleared' : 'playing')
       return
     }
-
+  
     if (targetCell.opened) {
       setCells((currentCells) => {
         const nextCells = openAround(currentCells, id, SIZE)
-
+  
         if (nextCells.some((cell) => cell.opened && cell.hasMine)) {
           setOverlayType('boom')
-          return nextCells.map((cell) =>
-            cell.opened && cell.hasMine ? cell : cell,
-          )
         }
-
+  
         if (isCleared(nextCells)) {
           setGameStatus('cleared')
         }
-
+  
         return nextCells
       })
       return
     }
-
+  
     if (targetCell.hasMine) {
       setCells((currentCells) =>
         currentCells.map((cell) =>
@@ -152,14 +182,16 @@ export default function Board() {
       setOverlayType('boom')
       return
     }
-
+  
+    addCurrentPlayerToParticipants()
+  
     setCells((currentCells) => {
       const nextCells = openCells(currentCells, id, SIZE)
-
+  
       if (isCleared(nextCells)) {
         setGameStatus('cleared')
       }
-
+  
       return nextCells
     })
   }
@@ -184,8 +216,13 @@ export default function Board() {
     setRemainingSeconds(TIME_LIMIT_SECONDS)
     setOverlayType(null)
     setChallenge((current) => ({
+        ...current,
         number: current.number + 1,
         participants: [],
+        selectedPlayer: null,
+        status: 'ready',
+        remainingSeconds: TIME_LIMIT_SECONDS,
+        cells: createBoard(SIZE),
       }))
   }
 
@@ -196,6 +233,31 @@ export default function Board() {
     setOverlayType(null)
   }
 
+  const quitPlaying = async () => {
+    await saveCurrentState('timeUp')
+    setGameStatus('timeUp')
+  }
+
+  const saveCurrentState = async (status = gameStatus) => {
+    await saveCurrentChallenge({
+      number: challenge.number,
+      size: SIZE,
+      mineCount: MINE_COUNT,
+      participants: challenge.participants,
+      selectedPlayer,
+      status,
+      remainingSeconds,
+      cells,
+    })
+  }
+
+  const loadTest = async () => {
+    const challenge = await loadCurrentChallenge()
+  
+    console.log(challenge)
+  }
+
+
   return (
     <div className="board-wrapper">
       <GameOverlay
@@ -204,29 +266,53 @@ export default function Board() {
         onNextChallenge={startNextChallenge}
       />
 
-    <div className="challenge-title">
-    第{challenge.number}回チャレンジ
+    <div className="challenge-card">
+        <div className="challenge-title">
+            第{challenge.number}回チャレンジ
+        </div>
+
+        <div className="current-player">
+            {selectedPlayer && gameStatus === 'playing'
+            ? `👤 ${selectedPlayer}さんがプレイ中`
+            : '👤 次のプレイヤーを待っています'}
+        </div>
     </div>
+
+    <button onClick={loadTest}>
+        Firestore読み込みテスト
+        </button>
 
     <StatusBar
         remainingMineCount={MINE_COUNT - cells.filter((cell) => cell.flagged).length}
         participantCount={challenge.participants.length}
         remainingSeconds={remainingSeconds}
         />
+    
 
-    {selectedPlayer && gameStatus === 'playing' && (
-        <div className="current-player">👤 {selectedPlayer}</div>
-        )}
+    <div className="play-action-row">
+    <ActionButton
+        mode={
+        gameStatus === 'ready'
+            ? 'join'
+            : gameStatus === 'playing'
+            ? 'quit'
+            : 'hidden'
+        }
+        onJoin={() => setIsPlayerDialogOpen(true)}
+        onQuit={quitPlaying}
+    />
+    </div>
 
     <div className="board-grid">
         {cells.map((cell) => (
-          <CellButton
-            key={cell.id}
-            cell={cell}
-            disabled={gameStatus === 'cleared' || gameStatus === 'timeUp' || Boolean(overlayType)}
-            onOpen={openCell}
-            onToggleFlag={toggleFlag}
-          />
+            <CellButton
+                key={cell.id}
+                cell={cell}
+                disabled={gameStatus === 'cleared' || gameStatus === 'timeUp' || Boolean(overlayType)}
+                canFlag={gameStatus === 'playing' && !overlayType}
+                onOpen={openCell}
+                onToggleFlag={toggleFlag}
+                />
         ))}
       </div>
       <PlayerDialog
