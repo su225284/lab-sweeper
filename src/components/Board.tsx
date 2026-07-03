@@ -10,7 +10,9 @@ import GameOverlay from './GameOverlay'
 import PlayerDialog from './PlayerDialog'
 import StatusBar from './StatusBar'
 import ActionButton from './ActionButton'
+import Card from './Card'
 import {
+  saveChallengeHistory,
   saveCurrentChallenge,
   subscribeCurrentChallenge,
   type ChallengeDocument,
@@ -21,7 +23,7 @@ const SIZE = 5
 const MINE_COUNT = 5
 const TIME_LIMIT_SECONDS = 60
 
-type GameStatus = 'ready' | 'playing' | 'cleared' | 'timeUp'
+type GameStatus = 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
 
 type OverlayType = 'boom' | null
 
@@ -46,6 +48,7 @@ export default function Board() {
     remainingSeconds: TIME_LIMIT_SECONDS,
     cells: createBoard(SIZE),
   })
+  const [localPlayer, setLocalPlayer] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = subscribeCurrentChallenge((savedChallenge) => {
@@ -82,6 +85,16 @@ export default function Board() {
   useEffect(() => {
     if (gameStatus !== 'timeUp') return
   
+    saveChallengeHistory(
+      {
+        ...challenge,
+        status: 'timeUp',
+        remainingSeconds,
+        cells,
+      },
+      'timeUp',
+    )
+  
     saveCurrentState('timeUp')
   
     const timeoutId = window.setTimeout(() => {
@@ -97,9 +110,13 @@ export default function Board() {
     if (overlayType !== 'boom') return
   
     const timeoutId = window.setTimeout(() => {
-      setCells(createBoard(SIZE))
+      const newCells = createBoard(SIZE)
+  
+      setCells(newCells)
       setBoardReady(false)
       setOverlayType(null)
+      setGameStatus('ready')
+      setRemainingSeconds(TIME_LIMIT_SECONDS)
   
       setChallenge((current) => ({
         ...current,
@@ -108,7 +125,7 @@ export default function Board() {
         selectedPlayer: null,
         status: 'ready',
         remainingSeconds: TIME_LIMIT_SECONDS,
-        cells: createBoard(SIZE),
+        cells: newCells,
       }))
     }, 1200)
   
@@ -117,15 +134,24 @@ export default function Board() {
     }
   }, [overlayType])
 
-  const startPlaying = (playerName: string) => {
-    setChallenge((current) => ({
-      ...current,
-      selectedPlayer: playerName,
-      status: 'playing',
-    }))
+  const startPlaying = async (playerName: string) => {
+    setLocalPlayer(playerName)
   
+    const nextChallenge = {
+      ...challenge,
+      selectedPlayer: playerName,
+      status: 'playing' as const,
+    }
+  
+    setChallenge(nextChallenge)
     setIsPlayerDialogOpen(false)
     setGameStatus('playing')
+  
+    await saveCurrentChallenge({
+      ...nextChallenge,
+      remainingSeconds,
+      cells,
+    })
   }
 
   const addCurrentPlayerToParticipants = () => {
@@ -143,17 +169,22 @@ export default function Board() {
   const openCell = (id: number) => {
     if (overlayType) return
   
-    if (gameStatus === 'timeUp' || gameStatus === 'cleared') return
-  
-    if (gameStatus === 'ready') {
-      setIsPlayerDialogOpen(true)
+    if (gameStatus === 'timeUp' || gameStatus === 'cleared' || gameStatus === 'failed') {
       return
     }
   
-    if (gameStatus !== 'playing') return
+    if (gameStatus === 'ready') {
+      if (!challenge.selectedPlayer) {
+        setIsPlayerDialogOpen(true)
+      }
+      return
+    }
+  
+    if (!canOperate) return
   
     const targetCell = cells.find((cell) => cell.id === id)
     if (!targetCell || targetCell.flagged) return
+ 
   
     if (!boardReady) {
       addCurrentPlayerToParticipants()
@@ -176,28 +207,60 @@ export default function Board() {
       setCells((currentCells) => {
         const result = openAround(currentCells, id, SIZE)
         const nextCells = result.cells
-  
+
         if (result.exploded) {
+          saveChallengeHistory(
+            {
+              ...challenge,
+              status: 'failed',
+              remainingSeconds,
+              cells: nextCells,
+            },
+            'failed',
+          )
+        
+          setGameStatus('failed')
           setOverlayType('boom')
           return nextCells
         }
-  
+    
         if (isCleared(nextCells)) {
+          saveChallengeHistory(
+            {
+              ...challenge,
+              status: 'cleared',
+              remainingSeconds,
+              cells: nextCells,
+            },
+            'cleared',
+          )
+    
           setGameStatus('cleared')
         }
-  
+    
         return nextCells
       })
-  
+    
       return
     }
   
     if (targetCell.hasMine) {
-      setCells((currentCells) =>
-        currentCells.map((cell) =>
-          cell.id === id ? { ...cell, opened: true } : cell,
-        ),
+      const explodedCells = cells.map((cell) =>
+        cell.id === id ? { ...cell, opened: true } : cell,
       )
+    
+      saveChallengeHistory(
+        {
+          ...challenge,
+          status: 'failed',
+          remainingSeconds,
+          cells: explodedCells,
+        },
+        'failed',
+      )
+    
+      setCells(explodedCells)
+      setGameStatus('failed')
       setOverlayType('boom')
       return
     }
@@ -206,19 +269,27 @@ export default function Board() {
   
     setCells((currentCells) => {
       const nextCells = openCells(currentCells, id, SIZE)
-  
+    
       if (isCleared(nextCells)) {
+        saveChallengeHistory(
+          {
+            ...challenge,
+            status: 'cleared',
+            remainingSeconds,
+            cells: nextCells,
+          },
+          'cleared',
+        )
+    
         setGameStatus('cleared')
       }
-  
+    
       return nextCells
     })
   }
 
-  const toggleFlag = (id: number) => {
-    if (gameStatus === 'cleared' || gameStatus === 'timeUp' || overlayType) {
-      return
-    }
+const toggleFlag = (id: number) => {
+  if (!canOperate) return
 
     setCells((currentCells) =>
       currentCells.map((cell) => {
@@ -264,6 +335,16 @@ export default function Board() {
   }
 
   const quitPlaying = async () => {
+    await saveChallengeHistory(
+      {
+        ...challenge,
+        status: 'timeUp',
+        remainingSeconds,
+        cells,
+      },
+      'timeUp',
+    )
+  
     await saveCurrentState('timeUp')
     setGameStatus('timeUp')
   }
@@ -277,6 +358,17 @@ export default function Board() {
     })
   }
 
+  const canOperate =
+  gameStatus === 'playing' &&
+  challenge.selectedPlayer !== null &&
+  localPlayer === challenge.selectedPlayer &&
+  !overlayType
+
+  const isOtherPlayerPlaying =
+  gameStatus === 'playing' &&
+  challenge.selectedPlayer !== null &&
+  localPlayer !== challenge.selectedPlayer
+
 
   return (
     <div className="board-wrapper">
@@ -286,17 +378,19 @@ export default function Board() {
         onNextChallenge={startNextChallenge}
       />
 
-    <div className="challenge-card">
-        <div className="challenge-title">
-            第{challenge.number}回チャレンジ
-        </div>
+    <Card className="challenge-card">
+      <div className="challenge-title">
+        第{challenge.number}回チャレンジ
+      </div>
 
-        <div className="current-player">
-        {challenge.selectedPlayer && gameStatus === 'playing'
-        ? `👤 ${challenge.selectedPlayer}さんがプレイ中`
-        : '👤 次のプレイヤーを待っています'}
-        </div>
-    </div>
+      <div className="current-player">
+        {isOtherPlayerPlaying
+          ? `🔒 ${challenge.selectedPlayer}さんがプレイ中です`
+          : challenge.selectedPlayer && gameStatus === 'playing'
+            ? `👤 ${challenge.selectedPlayer}さんがプレイ中`
+            : '👤 次のプレイヤーを待っています'}
+      </div>
+    </Card>
 
     <StatusBar
         remainingMineCount={MINE_COUNT - cells.filter((cell) => cell.flagged).length}
@@ -307,13 +401,13 @@ export default function Board() {
 
     <div className="play-action-row">
     <ActionButton
-        mode={
-        gameStatus === 'ready'
-            ? 'join'
-            : gameStatus === 'playing'
+      mode={
+        gameStatus === 'ready' && !challenge.selectedPlayer
+          ? 'join'
+          : canOperate
             ? 'quit'
             : 'hidden'
-        }
+      }
         onJoin={() => setIsPlayerDialogOpen(true)}
         onQuit={quitPlaying}
     />
@@ -321,14 +415,20 @@ export default function Board() {
 
     <div className="board-grid">
         {cells.map((cell) => (
-            <CellButton
-                key={cell.id}
-                cell={cell}
-                disabled={gameStatus === 'cleared' || gameStatus === 'timeUp' || Boolean(overlayType)}
-                canFlag={gameStatus === 'playing' && !overlayType}
-                onOpen={openCell}
-                onToggleFlag={toggleFlag}
-                />
+          <CellButton
+            key={cell.id}
+            cell={cell}
+            disabled={
+              gameStatus === 'cleared' ||
+              gameStatus === 'timeUp' ||
+              gameStatus === 'failed' ||
+              Boolean(overlayType) ||
+              (gameStatus === 'playing' && !canOperate)
+            }
+            canFlag={canOperate}
+            onOpen={openCell}
+            onToggleFlag={toggleFlag}
+          />
         ))}
       </div>
       <PlayerDialog

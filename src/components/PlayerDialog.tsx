@@ -1,3 +1,5 @@
+import Button from './Button'
+
 const MEMBERS = ['山田', '田中', '鈴木', '佐藤']
 
 type Props = {
@@ -16,19 +18,23 @@ export default function PlayerDialog({ open, onClose, onStart }: Props) {
 
         <div className="player-list">
           {MEMBERS.map((name) => (
-            <button
-              key={name}
-              type="button"
+            <Button
+              fullWidth
+              variant="secondary"
               onClick={() => onStart(name)}
             >
               {name}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <button type="button" className="secondary-button" onClick={onClose}>
+        <Button
+          fullWidth
+          variant="ghost"
+          onClick={onClose}
+        >
           キャンセル
-        </button>
+        </Button>
       </div>
     </div>
   )
