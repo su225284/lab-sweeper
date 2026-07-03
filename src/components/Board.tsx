@@ -11,8 +11,8 @@ import PlayerDialog from './PlayerDialog'
 import StatusBar from './StatusBar'
 import ActionButton from './ActionButton'
 import {
-  loadCurrentChallenge,
   saveCurrentChallenge,
+  subscribeCurrentChallenge,
   type ChallengeDocument,
 } from '../services/challengeService'
 
@@ -48,19 +48,15 @@ export default function Board() {
   })
 
   useEffect(() => {
-    const loadChallenge = async () => {
-      const savedChallenge = await loadCurrentChallenge()
-  
-      if (!savedChallenge) return
-  
+    const unsubscribe = subscribeCurrentChallenge((savedChallenge) => {
       setChallenge(savedChallenge)
       setCells(savedChallenge.cells)
       setRemainingSeconds(savedChallenge.remainingSeconds)
       setGameStatus(savedChallenge.status)
       setBoardReady(savedChallenge.cells.some((cell) => cell.opened))
-    }
+    })
   
-    loadChallenge()
+    return unsubscribe
   }, [])
 
   useEffect(() => {
