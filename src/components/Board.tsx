@@ -8,12 +8,17 @@ import type { Cell } from '../game/types'
 import CellButton from './CellButton'
 import GameOverlay from './GameOverlay'
 import PlayerDialog from './PlayerDialog'
+import StatusBar from './StatusBar'
 
 const SIZE = 5
 const MINE_COUNT = 5
 const TIME_LIMIT_SECONDS = 60
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'timeUp'
+type Challenge = {
+    number: number
+    participants: string[]
+  }
 type OverlayType = 'boom' | null
 
 function isCleared(cells: Cell[]) {
@@ -24,12 +29,14 @@ export default function Board() {
   const [cells, setCells] = useState<Cell[]>(() => createBoard(SIZE))
   const [gameStatus, setGameStatus] = useState<GameStatus>('ready')
   const [remainingSeconds, setRemainingSeconds] = useState(TIME_LIMIT_SECONDS)
-  const [challengeNumber, setChallengeNumber] = useState(1)
   const [boardReady, setBoardReady] = useState(false)
   const [overlayType, setOverlayType] = useState<OverlayType>(null)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false)
-  const [participants, setParticipants] = useState<string[]>([])
+  const [challenge, setChallenge] = useState<Challenge>({
+    number: 1,
+    participants: [],
+  })
 
   useEffect(() => {
     if (gameStatus !== 'playing') return
@@ -70,7 +77,10 @@ export default function Board() {
         setCells(createBoard(SIZE))
         setBoardReady(false)
         setOverlayType(null)
-        setChallengeNumber((current) => current + 1)
+        setChallenge((current) => ({
+            number: current.number + 1,
+            participants: [],
+          }))
     }, 1200)
 
     return () => {
@@ -80,9 +90,12 @@ export default function Board() {
 
   const startPlaying = (playerName: string) => {
     setSelectedPlayer(playerName)
-    setParticipants((current) =>
-      current.includes(playerName) ? current : [...current, playerName],
-    )
+    setChallenge((current) => ({
+        ...current,
+        participants: current.participants.includes(playerName)
+          ? current.participants
+          : [...current.participants, playerName],
+      }))
     setIsPlayerDialogOpen(false)
     setGameStatus('playing')
   }
@@ -170,7 +183,10 @@ export default function Board() {
     setGameStatus('ready')
     setRemainingSeconds(TIME_LIMIT_SECONDS)
     setOverlayType(null)
-    setChallengeNumber((current) => current + 1)
+    setChallenge((current) => ({
+        number: current.number + 1,
+        participants: [],
+      }))
   }
 
   const returnToReady = () => {
@@ -189,14 +205,14 @@ export default function Board() {
       />
 
     <div className="challenge-title">
-    第{challengeNumber}回チャレンジ
+    第{challenge.number}回チャレンジ
     </div>
 
-    <div className="board-status">
-        <span>💣 {MINE_COUNT - cells.filter((cell) => cell.flagged).length}</span>
-        <span>👥 {participants.length}人</span>
-        <span>⏱ {remainingSeconds}s</span>
-        </div>
+    <StatusBar
+        remainingMineCount={MINE_COUNT - cells.filter((cell) => cell.flagged).length}
+        participantCount={challenge.participants.length}
+        remainingSeconds={remainingSeconds}
+        />
 
     {selectedPlayer && gameStatus === 'playing' && (
         <div className="current-player">👤 {selectedPlayer}</div>
