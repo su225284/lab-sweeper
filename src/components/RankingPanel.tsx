@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { loadChallengeHistories } from '../services/challengeService'
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+} from 'firebase/firestore'
+import { db } from '../firebase'
+import type { ChallengeDocument } from '../game/types'
 import Card from './Card'
 
 type RankingItem = {
@@ -11,24 +18,30 @@ export default function RankingPanel() {
   const [ranking, setRanking] = useState<RankingItem[]>([])
 
   useEffect(() => {
-    const loadRanking = async () => {
-      const histories = await loadChallengeHistories()
+    const historyQuery = query(
+      collection(db, 'history'),
+      orderBy('number', 'desc')
+    )
+  
+    const unsubscribe = onSnapshot(historyQuery, (snapshot) => {
       const counts = new Map<string, number>()
-
-      histories.forEach((history) => {
+  
+      snapshot.docs.forEach((doc) => {
+        const history = doc.data() as ChallengeDocument
+  
         history.participants.forEach((name) => {
           counts.set(name, (counts.get(name) ?? 0) + 1)
         })
       })
-
+  
       setRanking(
         Array.from(counts.entries())
           .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count),
+          .sort((a, b) => b.count - a.count)
       )
-    }
-
-    loadRanking()
+    })
+  
+    return () => unsubscribe()
   }, [])
 
   return (

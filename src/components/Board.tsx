@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { calculateNumbers } from '../game/calculateNumbers'
-import { createBoard } from '../game/createBoard'
+import {
+  createInitialChallenge,
+  createNextChallenge,
+  DEFAULT_MINE_COUNT,
+  DEFAULT_SIZE,
+  DEFAULT_TIME_LIMIT_SECONDS,
+} from '../game/challengeFactory'
 import { openAround } from '../game/openAround'
 import { openCells } from '../game/openCells'
 import { placeMines } from '../game/placeMines'
@@ -19,9 +25,9 @@ import {
 } from '../services/challengeService'
 
 
-const SIZE = 5
-const MINE_COUNT = 5
-const TIME_LIMIT_SECONDS = 60
+const SIZE = DEFAULT_SIZE
+const MINE_COUNT = DEFAULT_MINE_COUNT
+const TIME_LIMIT_SECONDS = DEFAULT_TIME_LIMIT_SECONDS
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
 
@@ -32,26 +38,35 @@ function isCleared(cells: Cell[]) {
 }
 
 export default function Board() {
-  const [cells, setCells] = useState<Cell[]>(() => createBoard(SIZE))
+  const [cells, setCells] = useState<Cell[]>(() =>
+    createInitialChallenge().cells
+  )
   const [gameStatus, setGameStatus] = useState<GameStatus>('ready')
   const [remainingSeconds, setRemainingSeconds] = useState(TIME_LIMIT_SECONDS)
   const [boardReady, setBoardReady] = useState(false)
   const [overlayType, setOverlayType] = useState<OverlayType>(null)
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false)
-  const [challenge, setChallenge] = useState<ChallengeDocument>({
-    number: 1,
-    size: SIZE,
-    mineCount: MINE_COUNT,
-    participants: [],
-    selectedPlayer: null,
-    status: 'ready',
-    remainingSeconds: TIME_LIMIT_SECONDS,
-    cells: createBoard(SIZE),
-  })
+  const [challenge, setChallenge] = useState<ChallengeDocument>(() =>
+    createInitialChallenge()
+  )
   const [localPlayer, setLocalPlayer] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = subscribeCurrentChallenge((savedChallenge) => {
+    const unsubscribe = subscribeCurrentChallenge(async (savedChallenge) => {
+      if (!savedChallenge.cells || !Array.isArray(savedChallenge.cells)) {
+        const resetChallenge = createInitialChallenge()
+      
+        await saveCurrentChallenge(resetChallenge)
+      
+        setChallenge(resetChallenge)
+        setCells(resetChallenge.cells)
+        setRemainingSeconds(resetChallenge.remainingSeconds)
+        setGameStatus(resetChallenge.status)
+        setBoardReady(false)
+      
+        return
+      }
+  
       setChallenge(savedChallenge)
       setCells(savedChallenge.cells)
       setRemainingSeconds(savedChallenge.remainingSeconds)
@@ -109,24 +124,17 @@ export default function Board() {
   useEffect(() => {
     if (overlayType !== 'boom') return
   
-    const timeoutId = window.setTimeout(() => {
-      const newCells = createBoard(SIZE)
-  
-      setCells(newCells)
+    const timeoutId = window.setTimeout(async () => {
+      const nextChallenge = createNextChallenge(challenge)
+    
+      setCells(nextChallenge.cells)
       setBoardReady(false)
       setOverlayType(null)
       setGameStatus('ready')
-      setRemainingSeconds(TIME_LIMIT_SECONDS)
-  
-      setChallenge((current) => ({
-        ...current,
-        number: current.number + 1,
-        participants: [],
-        selectedPlayer: null,
-        status: 'ready',
-        remainingSeconds: TIME_LIMIT_SECONDS,
-        cells: newCells,
-      }))
+      setRemainingSeconds(nextChallenge.remainingSeconds)
+      setChallenge(nextChallenge)
+    
+      await saveCurrentChallenge(nextChallenge)
     }, 1200)
   
     return () => {
@@ -154,19 +162,31 @@ export default function Board() {
     })
   }
 
-  const addCurrentPlayerToParticipants = () => {
+  const addCurrentPlayerToParticipants = async (nextCells: Cell[]) => {
     const playerName = challenge.selectedPlayer
-    if (!playerName) return
   
-    setChallenge((current) => ({
-      ...current,
-      participants: current.participants.includes(playerName)
-        ? current.participants
-        : [...current.participants, playerName],
-    }))
+    if (!playerName) {
+      return challenge
+    }
+  
+    const nextChallenge: ChallengeDocument = {
+      ...challenge,
+      participants: challenge.participants.includes(playerName)
+        ? challenge.participants
+        : [...challenge.participants, playerName],
+      remainingSeconds,
+      cells: nextCells,
+    }
+  
+    setChallenge(nextChallenge)
+    await saveCurrentChallenge(nextChallenge)
+  
+    return nextChallenge
   }
 
-  const openCell = (id: number) => {
+  
+
+  const openCell = async (id: number) => {
     if (overlayType) return
   
     if (gameStatus === 'timeUp' || gameStatus === 'cleared' || gameStatus === 'failed') {
@@ -187,19 +207,28 @@ export default function Board() {
  
   
     if (!boardReady) {
-      addCurrentPlayerToParticipants()
-  
       const boardWithMines = placeMines(cells, SIZE, MINE_COUNT, id)
       const boardWithNumbers = calculateNumbers(boardWithMines, SIZE)
       const openedBoard = openCells(boardWithNumbers, id, SIZE)
-  
+      const nextChallenge = await addCurrentPlayerToParticipants(openedBoard)
+    
       setCells(openedBoard)
       setBoardReady(true)
-  
+    
       if (isCleared(openedBoard)) {
+        await saveChallengeHistory(
+          {
+            ...nextChallenge,
+            status: 'cleared',
+            remainingSeconds,
+            cells: openedBoard,
+          },
+          'cleared',
+        )
+    
         setGameStatus('cleared')
       }
-  
+    
       return
     }
   
@@ -265,8 +294,6 @@ export default function Board() {
       return
     }
   
-    addCurrentPlayerToParticipants()
-  
     setCells((currentCells) => {
       const nextCells = openCells(currentCells, id, SIZE)
     
@@ -299,21 +326,17 @@ const toggleFlag = (id: number) => {
     )
   }
 
-  const startNextChallenge = () => {
-    setCells(createBoard(SIZE))
+  const startNextChallenge = async () => {
+    const nextChallenge = createNextChallenge(challenge)
+  
+    setCells(nextChallenge.cells)
     setBoardReady(false)
     setGameStatus('ready')
-    setRemainingSeconds(TIME_LIMIT_SECONDS)
+    setRemainingSeconds(nextChallenge.remainingSeconds)
     setOverlayType(null)
-    setChallenge((current) => ({
-        ...current,
-        number: current.number + 1,
-        participants: [],
-        selectedPlayer: null,
-        status: 'ready',
-        remainingSeconds: TIME_LIMIT_SECONDS,
-        cells: createBoard(SIZE),
-      }))
+    setChallenge(nextChallenge)
+  
+    await saveCurrentChallenge(nextChallenge)
   }
 
   const returnToReady = async () => {

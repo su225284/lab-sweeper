@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { collection, getDocs, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase'
+import { createInitialChallenge } from '../game/challengeFactory'
+import { saveCurrentChallenge } from '../services/challengeService'
 import Button from './Button'
 
 function SettingsPanel() {
@@ -24,8 +26,8 @@ function SettingsPanel() {
       })
 
       await batch.commit()
-
-      alert('履歴を全削除しました。')
+      await saveCurrentChallenge(createInitialChallenge())
+      alert('履歴を全削除し、第1回チャレンジにリセットしました。')
     } catch (error) {
       console.error(error)
       alert('履歴の削除に失敗しました。')

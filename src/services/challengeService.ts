@@ -68,18 +68,18 @@ export function subscribeCurrentChallenge(
 const historyCollectionRef = collection(db, 'history')
 
 export async function saveChallengeHistory(
-challenge: ChallengeDocument,
-result: ChallengeResult,
+  challenge: ChallengeDocument,
+  result: ChallengeResult,
 ) {
-await setDoc(doc(historyCollectionRef, `challenge-${challenge.number}`), {
-  ...challenge,
-  result,
-  finishedAt: serverTimestamp(),
-})
+  await setDoc(doc(historyCollectionRef, `challenge-${challenge.number}`), {
+    ...challenge,
+    status: result,
+    finishedAt: serverTimestamp(),
+  })
 }
 
 export type ChallengeHistoryDocument = ChallengeDocument & {
-  result: ChallengeResult
+  status: ChallengeResult
   finishedAt?: Timestamp
 }
 
