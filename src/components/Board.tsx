@@ -1,40 +1,123 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { calculateNumbers } from '../game/calculateNumbers'
 import { createBoard } from '../game/createBoard'
 import { openAround } from '../game/openAround'
 import { openCells } from '../game/openCells'
+import { placeMines } from '../game/placeMines'
 import type { Cell } from '../game/types'
 import CellButton from './CellButton'
 import GameOverlay from './GameOverlay'
+import PlayerDialog from './PlayerDialog'
 
 const SIZE = 5
 const MINE_COUNT = 5
+const TIME_LIMIT_SECONDS = 60
 
-type GameStatus = 'playing' | 'gameOver' | 'cleared'
+type GameStatus = 'ready' | 'playing' | 'cleared' | 'timeUp'
+type OverlayType = 'boom' | null
 
 function isCleared(cells: Cell[]) {
   return cells.every((cell) => cell.hasMine || cell.opened)
 }
 
 export default function Board() {
-  const [cells, setCells] = useState<Cell[]>(() =>
-    createBoard(SIZE, MINE_COUNT),
-  )
-  const [gameStatus, setGameStatus] = useState<GameStatus>('playing')
+  const [cells, setCells] = useState<Cell[]>(() => createBoard(SIZE))
+  const [gameStatus, setGameStatus] = useState<GameStatus>('ready')
+  const [remainingSeconds, setRemainingSeconds] = useState(TIME_LIMIT_SECONDS)
+  const [challengeNumber, setChallengeNumber] = useState(1)
+  const [boardReady, setBoardReady] = useState(false)
+  const [overlayType, setOverlayType] = useState<OverlayType>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
+  const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false)
+  const [participants, setParticipants] = useState<string[]>([])
+
+  useEffect(() => {
+    if (gameStatus !== 'playing') return
+
+    const timerId = window.setInterval(() => {
+      setRemainingSeconds((currentSeconds) => {
+        if (currentSeconds <= 1) {
+          window.clearInterval(timerId)
+          setGameStatus('timeUp')
+          return 0
+        }
+
+        return currentSeconds - 1
+      })
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timerId)
+    }
+  }, [gameStatus])
+
+  useEffect(() => {
+    if (gameStatus !== 'timeUp') return
+
+    const timeoutId = window.setTimeout(() => {
+      returnToReady()
+    }, 3000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [gameStatus])
+
+  useEffect(() => {
+    if (overlayType !== 'boom') return
+
+    const timeoutId = window.setTimeout(() => {
+        setCells(createBoard(SIZE))
+        setBoardReady(false)
+        setOverlayType(null)
+        setChallengeNumber((current) => current + 1)
+    }, 1200)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [overlayType])
+
+  const startPlaying = (playerName: string) => {
+    setSelectedPlayer(playerName)
+    setParticipants((current) =>
+      current.includes(playerName) ? current : [...current, playerName],
+    )
+    setIsPlayerDialogOpen(false)
+    setGameStatus('playing')
+  }
 
   const openCell = (id: number) => {
-    if (gameStatus !== 'playing') return
+    if (gameStatus === 'ready') {
+        setIsPlayerDialogOpen(true)
+        return
+      }
+    if (gameStatus === 'cleared' || gameStatus === 'timeUp' || overlayType) {
+      return
+    }
 
     const targetCell = cells.find((cell) => cell.id === id)
     if (!targetCell || targetCell.flagged) return
+
+    if (!boardReady) {
+      const boardWithMines = placeMines(cells, SIZE, MINE_COUNT, id)
+      const boardWithNumbers = calculateNumbers(boardWithMines, SIZE)
+      const openedBoard = openCells(boardWithNumbers, id, SIZE)
+
+      setCells(openedBoard)
+      setBoardReady(true)
+      setGameStatus(isCleared(openedBoard) ? 'cleared' : 'playing')
+      return
+    }
 
     if (targetCell.opened) {
       setCells((currentCells) => {
         const nextCells = openAround(currentCells, id, SIZE)
 
         if (nextCells.some((cell) => cell.opened && cell.hasMine)) {
-          setGameStatus('gameOver')
+          setOverlayType('boom')
           return nextCells.map((cell) =>
-            cell.hasMine ? { ...cell, opened: true } : cell,
+            cell.opened && cell.hasMine ? cell : cell,
           )
         }
 
@@ -48,12 +131,12 @@ export default function Board() {
     }
 
     if (targetCell.hasMine) {
-      setGameStatus('gameOver')
       setCells((currentCells) =>
         currentCells.map((cell) =>
-          cell.hasMine ? { ...cell, opened: true } : cell,
+          cell.id === id ? { ...cell, opened: true } : cell,
         ),
       )
+      setOverlayType('boom')
       return
     }
 
@@ -69,7 +152,9 @@ export default function Board() {
   }
 
   const toggleFlag = (id: number) => {
-    if (gameStatus !== 'playing') return
+    if (gameStatus === 'cleared' || gameStatus === 'timeUp' || overlayType) {
+      return
+    }
 
     setCells((currentCells) =>
       currentCells.map((cell) => {
@@ -79,26 +164,60 @@ export default function Board() {
     )
   }
 
-  const restartGame = () => {
-    setCells(createBoard(SIZE, MINE_COUNT))
-    setGameStatus('playing')
+  const startNextChallenge = () => {
+    setCells(createBoard(SIZE))
+    setBoardReady(false)
+    setGameStatus('ready')
+    setRemainingSeconds(TIME_LIMIT_SECONDS)
+    setOverlayType(null)
+    setChallengeNumber((current) => current + 1)
+  }
+
+  const returnToReady = () => {
+    setGameStatus('ready')
+    setBoardReady(false)
+    setRemainingSeconds(TIME_LIMIT_SECONDS)
+    setOverlayType(null)
   }
 
   return (
     <div className="board-wrapper">
-      <GameOverlay status={gameStatus} onRestart={restartGame} />
-  
-      <div className="board-grid">
+      <GameOverlay
+        status={gameStatus}
+        overlayType={overlayType}
+        onNextChallenge={startNextChallenge}
+      />
+
+    <div className="challenge-title">
+    第{challengeNumber}回チャレンジ
+    </div>
+
+    <div className="board-status">
+        <span>💣 {MINE_COUNT - cells.filter((cell) => cell.flagged).length}</span>
+        <span>👥 {participants.length}人</span>
+        <span>⏱ {remainingSeconds}s</span>
+        </div>
+
+    {selectedPlayer && gameStatus === 'playing' && (
+        <div className="current-player">👤 {selectedPlayer}</div>
+        )}
+
+    <div className="board-grid">
         {cells.map((cell) => (
           <CellButton
             key={cell.id}
             cell={cell}
-            disabled={gameStatus !== 'playing'}
+            disabled={gameStatus === 'cleared' || gameStatus === 'timeUp' || Boolean(overlayType)}
             onOpen={openCell}
             onToggleFlag={toggleFlag}
           />
         ))}
       </div>
+      <PlayerDialog
+        open={isPlayerDialogOpen}
+        onClose={() => setIsPlayerDialogOpen(false)}
+        onStart={startPlaying}
+        />
     </div>
   )
 }

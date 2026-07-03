@@ -4,17 +4,20 @@ import Board from './components/Board'
 function App() {
   return (
     <main className="app">
-      <h1>🧪 Lab Sweeper</h1>
+      <section className="app-card">
+        <header className="app-header">
+          <h1>🧪 Lab Sweeper</h1>
+          <p>One Lab. One Board.</p>
+        </header>
 
-      <h2>第1回チャレンジ</h2>
-
-      <p>進捗：0%</p>
-
-      <div className="board">
         <Board />
-      </div>
 
-      <button>盤面をタップして参加</button>
+        <nav className="footer-menu">
+          <button type="button">履歴</button>
+          <button type="button">ルール</button>
+          <button type="button">設定</button>
+        </nav>
+      </section>
     </main>
   )
 }
