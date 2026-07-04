@@ -18,6 +18,8 @@ body {
   padding: 24px;
   border-radius: 24px;
   background: white;
+  color: #111827;   /* ←追加 */
+
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
 
   display: flex;
@@ -32,6 +34,8 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 32px;
+  color: #111827;
+  font-weight: 800;
 }
 
 .app-header p {
@@ -265,7 +269,8 @@ button {
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
-  font-weight: bold;
+  color: #4b5563;
+  font-weight: 800;
 }
 
 .game-over-panel button {
@@ -297,6 +302,7 @@ button {
   font-weight: 800;
   font-size: 20px;
   text-align: center;
+  color: #111827;
 }
 
 .dialog-backdrop {
@@ -335,7 +341,7 @@ button {
   height: 24px;
   display: grid;
   place-items: center;
-  color: #4b5563;
+  color: #374151;
   font-weight: 700;
   font-size: 14px;
 }
@@ -384,16 +390,23 @@ button {
   padding: 16px;
   border-radius: 16px;
   background: #f9fafb;
+  color: #4b5563;
 }
 
 .ranking-panel h2 {
   margin: 0 0 12px;
   font-size: 18px;
+  color: #111827;
 }
 
 .ranking-panel ol {
   margin: 0;
   padding-left: 24px;
+}
+
+.ranking-panel li {
+  color: #4b5563;
+  font-weight: 600;
 }
 
 .history-panel {
@@ -508,6 +521,11 @@ button {
   position: relative;
 }
 
+.modal-card h2 {
+  color: #111827;
+  font-weight: 700;
+}
+
 .modal-x-button {
   position: absolute;
   top: 16px;
@@ -519,12 +537,12 @@ button {
   padding: 0;
   border: none;
   border-radius: 999px;
-  background: #f1f1f1;
-  color: #111827;
   font-size: 1.25rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .modal-x-button:hover {
