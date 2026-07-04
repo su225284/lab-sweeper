@@ -45,7 +45,11 @@ function HistoryPanel() {
               </div>
             
               <div className="history-card-footer">
-                <span>👥 {history.participants.join(', ')}</span>
+                <span>
+                  {history.status === 'cleared' || history.status === 'timeUp'
+                    ? `👥 ${history.participants.join(', ')}`
+                    : ''}
+                </span>
             
                 <span className="history-time">
                   {formatFinishedAt(history.finishedAt)}
