@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { collection, getDocs, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
@@ -8,8 +8,9 @@ import {
 } from '../game/challengeFactory'
 import { saveCurrentChallenge } from '../services/challengeService'
 import Button from './Button'
-import { getMembers, saveMembers } from '../game/memberManager'
+import { addMember, removeMember, subscribeMembers } from '../game/memberManager'
 import Card from './Card'
+
 
 type SettingsPanelProps = {
     onDeletedHistory?: () => void
@@ -35,8 +36,14 @@ function SettingsPanel({
   const appliedBoardSize = getSavedBoardSize()
   const hasBoardSizeChanged = boardSize !== appliedBoardSize
   const previewMineCount = calculateMineCount(boardSize)
-  const [members, setMembers] = useState(getMembers)
+  const [members, setMembers] = useState<string[]>([])
   const [newMemberName, setNewMemberName] = useState('')
+
+useEffect(() => {
+  const unsubscribe = subscribeMembers(setMembers)
+
+  return () => unsubscribe()
+}, [])
 
   const handleDecreaseBoardSize = () => {
     setBoardSize((current) => Math.max(5, current - 1))
@@ -52,22 +59,19 @@ function SettingsPanel({
     onApplySettings?.()
   }
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     const trimmedName = newMemberName.trim()
   
     if (!trimmedName) return
     if (members.includes(trimmedName)) return
   
-    const nextMembers = [...members, trimmedName]
-  
-    setMembers(nextMembers)
-    saveMembers(nextMembers)
+    await addMember(trimmedName)
     setNewMemberName('')
 
     showToast?.(`「${trimmedName}」を追加しました。`)
   }
 
-  const handleDeleteMember = (memberName: string) => {
+  const handleDeleteMember = async (memberName: string) => {
     if (members.length <= 1) {
       return
     }
@@ -78,12 +82,7 @@ function SettingsPanel({
   
     if (!ok) return
   
-    const nextMembers = members.filter(
-      (member) => member !== memberName,
-    )
-  
-    setMembers(nextMembers)
-    saveMembers(nextMembers)
+    await removeMember(memberName)
 
     showToast?.(`「${memberName}」を削除しました。`)
   }

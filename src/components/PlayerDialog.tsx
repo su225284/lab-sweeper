@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import Button from './Button'
-import { getMembers } from '../game/memberManager'
+import { subscribeMembers } from '../game/memberManager'
 
 
 type Props = {
@@ -9,7 +10,15 @@ type Props = {
 }
 
 export default function PlayerDialog({ open, onClose, onStart }: Props) {
-  const members = getMembers()
+  const [members, setMembers] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!open) return
+
+    const unsubscribe = subscribeMembers(setMembers)
+
+    return () => unsubscribe()
+  }, [open])
 
   if (!open) return null
 
@@ -19,13 +28,14 @@ export default function PlayerDialog({ open, onClose, onStart }: Props) {
         <h2>プレイヤーを選択</h2>
 
         <div className="player-list">
-          {members.map((name) => (
+          {members.map((member) => (
             <Button
+              key={member}
               fullWidth
               variant="secondary"
-              onClick={() => onStart(name)}
+              onClick={() => onStart(member)}
             >
-              {name}
+              {member}
             </Button>
           ))}
         </div>
