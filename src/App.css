@@ -128,7 +128,9 @@ button {
   line-height: 1;
   padding: 0;
 
-  touch-action: manipulation;
+
+  touch-action: none;
+  -webkit-touch-callout: none;
   user-select: none;
   -webkit-user-select: none;
 
@@ -321,16 +323,20 @@ button {
   background: white;
   display: grid;
   gap: 16px;
+  color: #111827;
 }
 
 .player-dialog h2 {
   margin: 0;
   text-align: center;
+  color: #111827;
+  font-weight: 800;
 }
 
 .player-list {
   display: grid;
   gap: 10px;
+  color: #111827;
 }
 
 .secondary-button {
