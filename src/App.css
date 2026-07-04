@@ -685,6 +685,8 @@ button {
 
 .settings-panel h3 {
   margin: 18px 0 8px;
+  color: #111827;
+  font-weight: 800;
 }
 
 .settings-panel h3:first-child {
@@ -706,7 +708,7 @@ button {
 .settings-item p,
 .settings-danger-zone p {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: #374151;
   font-size: 0.9rem;
 }
 
@@ -807,11 +809,17 @@ button {
   border: 1px solid #d1d5db;
   border-radius: 12px;
   font-size: 1rem;
+  background: #ffffff;
+  color: #111827;
 }
 
 .member-add-row input:focus {
   outline: 2px solid #93c5fd;
   border-color: #3b82f6;
+}
+
+.member-add-row input::placeholder {
+  color: #9ca3af;
 }
 
 .member-row {
