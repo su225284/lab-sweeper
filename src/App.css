@@ -515,9 +515,7 @@ button {
   padding: 20px;
   border-radius: 20px;
   background: white;
-}
-
-.modal-card {
+  color: #111827;
   position: relative;
 }
 
@@ -582,6 +580,13 @@ button {
 .rule-columns {
   display: grid;
   gap: 12px;
+}
+
+.rule-panel p,
+.rule-panel li,
+.history-panel,
+.settings-panel p {
+  color: #374151;
 }
 
 .chord-example {

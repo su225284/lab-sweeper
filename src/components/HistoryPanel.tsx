@@ -35,8 +35,8 @@ function HistoryPanel() {
             <Card key={history.number} className="history-card">
               <div className="history-card-header">
               <strong>
-                Challenge #{history.number}
-                {history.size ? `　${history.size}×${history.size}` : ''}
+                第{history.number}回チャレンジ
+                {history.size ? `　${history.size}×${history.size}マス` : ''}
               </strong>
             
                 <span className={`history-status ${history.status}`}>
