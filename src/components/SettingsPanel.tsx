@@ -10,6 +10,10 @@ import { saveCurrentChallenge } from '../services/challengeService'
 import Button from './Button'
 import { addMember, removeMember, subscribeMembers } from '../game/memberManager'
 import Card from './Card'
+import {
+  saveBoardSize,
+  subscribeBoardSize,
+} from '../services/settingsService'
 
 
 type SettingsPanelProps = {
@@ -20,10 +24,7 @@ type SettingsPanelProps = {
     currentBoardSize?: number | null
   }
 
-function getSavedBoardSize() {
-  const saved = localStorage.getItem('boardSize')
-  return saved ? Number(saved) : DEFAULT_BOARD_SIZE
-}
+
 
 function SettingsPanel({
     onDeletedHistory,
@@ -33,13 +34,22 @@ function SettingsPanel({
     currentBoardSize,
   }: SettingsPanelProps) {
   const [isDeletingHistory, setIsDeletingHistory] = useState(false)
-  const [boardSize, setBoardSize] = useState(getSavedBoardSize)
+  const [boardSize, setBoardSize] = useState(DEFAULT_BOARD_SIZE)
     
-  const appliedBoardSize = getSavedBoardSize()
+  const [appliedBoardSize, setAppliedBoardSize] = useState(DEFAULT_BOARD_SIZE)
   const hasBoardSizeChanged = boardSize !== appliedBoardSize
   const previewMineCount = calculateMineCount(boardSize)
   const [members, setMembers] = useState<string[]>([])
   const [newMemberName, setNewMemberName] = useState('')
+
+  useEffect(() => {
+    const unsubscribe = subscribeBoardSize((savedBoardSize) => {
+      setBoardSize(savedBoardSize)
+      setAppliedBoardSize(savedBoardSize)
+    })
+  
+    return () => unsubscribe()
+  }, [])
 
 
 useEffect(() => {
@@ -57,10 +67,22 @@ const handleIncreaseBoardSize = () => {
 setBoardSize((current) => Math.min(50, current + 1))
 }
 
-const handleApplyBoardSize = () => {
-localStorage.setItem('boardSize', String(boardSize))
-onChangedSettings?.()
-onApplySettings?.()
+const handleApplyBoardSize = async () => {
+  try {
+    console.log('save boardSize:', boardSize)
+
+    await saveBoardSize(boardSize)
+
+    console.log('saved boardSize:', boardSize)
+
+    setAppliedBoardSize(boardSize)
+
+    onChangedSettings?.()
+    onApplySettings?.()
+  } catch (error) {
+    console.error('盤面サイズの保存に失敗しました:', error)
+    alert('盤面サイズの保存に失敗しました。')
+  }
 }
 
 const handleAddMember = async () => {

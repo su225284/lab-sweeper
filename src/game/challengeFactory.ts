@@ -25,8 +25,9 @@ export function calculateMineCount(boardSize: number) {
   return Math.round(boardSize * boardSize * DEFAULT_MINE_RATE)
 }
 
-export function createInitialChallenge(): ChallengeDocument {
-  const boardSize = getBoardSize()
+export function createInitialChallenge(
+  boardSize = DEFAULT_BOARD_SIZE,
+): ChallengeDocument {
   const mineCount = calculateMineCount(boardSize)
 
   return {
@@ -61,19 +62,19 @@ export function createNextChallenge(
 }
 
 export function recreateChallengeBoard(
-    currentChallenge: ChallengeDocument,
-  ): ChallengeDocument {
-    const boardSize = getBoardSize()
-    const mineCount = calculateMineCount(boardSize)
-  
-    return {
-      ...currentChallenge,
-      size: boardSize,
-      mineCount,
-      participants: [],
-      selectedPlayer: null,
-      status: 'ready',
-      remainingSeconds: DEFAULT_TIME_LIMIT_SECONDS,
-      cells: createBoard(boardSize),
-    }
+  currentChallenge: ChallengeDocument,
+  boardSize: number,
+): ChallengeDocument {
+  const mineCount = calculateMineCount(boardSize)
+
+  return {
+    ...currentChallenge,
+    size: boardSize,
+    mineCount,
+    participants: [],
+    selectedPlayer: null,
+    status: 'ready',
+    remainingSeconds: DEFAULT_TIME_LIMIT_SECONDS,
+    cells: createBoard(boardSize),
   }
+}

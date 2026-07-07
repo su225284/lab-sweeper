@@ -6,6 +6,7 @@ import {
   createNextChallenge,
   recreateChallengeBoard,
   DEFAULT_TIME_LIMIT_SECONDS,
+  DEFAULT_BOARD_SIZE,
 } from '../game/challengeFactory'
 import { openAround } from '../game/openAround'
 import { openCells } from '../game/openCells'
@@ -23,6 +24,7 @@ import {
   subscribeCurrentChallenge,
   type ChallengeDocument,
 } from '../services/challengeService'
+import { subscribeBoardSize } from '../services/settingsService'
 
 const TIME_LIMIT_SECONDS = DEFAULT_TIME_LIMIT_SECONDS
 
@@ -48,6 +50,11 @@ export default function Board({
   const [cells, setCells] = useState<Cell[]>(() =>
     createInitialChallenge().cells
   )
+
+  const [configuredBoardSize, setConfiguredBoardSize] =
+    useState(DEFAULT_BOARD_SIZE)
+
+
   const [gameStatus, setGameStatus] = useState<GameStatus>('ready')
   const [remainingSeconds, setRemainingSeconds] = useState(TIME_LIMIT_SECONDS)
   const [boardReady, setBoardReady] = useState(false)
@@ -62,6 +69,12 @@ export default function Board({
 
   const SIZE = challenge.size
   const MINE_COUNT = challenge.mineCount
+
+  useEffect(() => {
+    const unsubscribe = subscribeBoardSize(setConfiguredBoardSize)
+  
+    return () => unsubscribe()
+  }, [])
 
   useEffect(() => {
     onBoardSizeChange?.(challenge.size)
@@ -131,7 +144,10 @@ export default function Board({
       return
     }
   
-    const nextChallenge = recreateChallengeBoard(challenge)
+    const nextChallenge = recreateChallengeBoard(
+      challenge,
+      configuredBoardSize,
+    )
 
     setChallenge(nextChallenge)
     setCells(nextChallenge.cells)
