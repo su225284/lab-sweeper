@@ -328,7 +328,16 @@ export default function Board({
       setCells((currentCells) => {
         const result = openAround(currentCells, id, SIZE)
         const nextCells = result.cells
-
+    
+        const nextChallenge = {
+          ...challenge,
+          remainingSeconds,
+          cells: nextCells,
+        }
+    
+        setChallenge(nextChallenge)
+        saveCurrentChallenge(nextChallenge)
+    
         if (result.exploded) {
           saveChallengeHistory(
             {
@@ -339,7 +348,7 @@ export default function Board({
             },
             'failed',
           )
-        
+    
           setGameStatus('failed')
           setOverlayType('boom')
           return nextCells
@@ -389,13 +398,20 @@ export default function Board({
     setCells((currentCells) => {
       const nextCells = openCells(currentCells, id, SIZE)
     
+      const nextChallenge = {
+        ...challenge,
+        remainingSeconds,
+        cells: nextCells,
+      }
+    
+      saveCurrentChallenge(nextChallenge)
+      setChallenge(nextChallenge)
+    
       if (isCleared(nextCells)) {
         saveChallengeHistory(
           {
-            ...challenge,
+            ...nextChallenge,
             status: 'cleared',
-            remainingSeconds,
-            cells: nextCells,
           },
           'cleared',
         )
@@ -407,15 +423,26 @@ export default function Board({
     })
   }
 
-const toggleFlag = (id: number) => {
-  if (!canOperate) return
-
-    setCells((currentCells) =>
-      currentCells.map((cell) => {
+  const toggleFlag = (id: number) => {
+    if (!canOperate) return
+  
+    setCells((currentCells) => {
+      const nextCells = currentCells.map((cell) => {
         if (cell.id !== id || cell.opened) return cell
         return { ...cell, flagged: !cell.flagged }
-      }),
-    )
+      })
+  
+      const nextChallenge = {
+        ...challenge,
+        remainingSeconds,
+        cells: nextCells,
+      }
+  
+      setChallenge(nextChallenge)
+      saveCurrentChallenge(nextChallenge)
+  
+      return nextCells
+    })
   }
 
   const startNextChallenge = async () => {
