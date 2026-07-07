@@ -164,24 +164,39 @@ export default function Board({
   useEffect(() => {
     if (gameStatus !== 'timeUp') return
   
-    saveChallengeHistory(
-      {
-        ...challenge,
-        status: 'timeUp',
-        remainingSeconds,
-        cells,
-      },
-      'timeUp',
-    )
+    let cancelled = false
+    let timeoutId: number | null = null
   
-    saveCurrentState('timeUp')
+    const handleTimeUp = async () => {
+      await saveChallengeHistory(
+        {
+          ...challenge,
+          status: 'timeUp',
+          remainingSeconds: 0,
+          cells,
+        },
+        'timeUp',
+      )
   
-    const timeoutId = window.setTimeout(() => {
-      returnToReady()
-    }, 3000)
+      if (cancelled) return
+  
+      await saveCurrentState('timeUp')
+  
+      if (cancelled) return
+  
+      timeoutId = window.setTimeout(() => {
+        returnToReady()
+      }, 3000)
+    }
+  
+    handleTimeUp()
   
     return () => {
-      window.clearTimeout(timeoutId)
+      cancelled = true
+  
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+      }
     }
   }, [gameStatus])
 
