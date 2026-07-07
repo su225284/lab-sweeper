@@ -534,9 +534,18 @@ export default function Board({
   localPlayer !== challenge.selectedPlayer
 
   const cellSize = boardWidth / SIZE
-  const numberSize = Math.max(10, cellSize * 0.72)
-  const iconSize = numberSize * 0.9
-  const bevelSize = Math.max(1, Math.min(6, cellSize * 0.08))
+  const numberSize = Math.max(
+    8,
+    Math.min(cellSize * 0.62, cellSize - 4),
+  )
+  const iconSize = Math.max(
+    8,
+    Math.min(cellSize * 0.58, cellSize - 4),
+  )
+  const bevelSize = Math.max(
+    1,
+    Math.min(5, cellSize * 0.07),
+  )
   
   const boardStyle = {
     '--grid-size': SIZE,
