@@ -232,7 +232,7 @@ button {
   margin: 0;
   color: #dc2626;
   font-weight: bold;
-  font-size: 24px;
+  font-size: 32px;
 }
 
 .board-wrapper {
@@ -243,14 +243,15 @@ button {
 }
 
 .game-over-panel {
-  position: absolute;
-  z-index: 100;
+  position: relative;
+  width: min(92vw, 420px);
   display: grid;
   gap: 12px;
   place-items: center;
-  padding: 20px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
+  padding: 24px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 16px 40px rgba(0,0,0,.2);
   pointer-events: auto;
 }
 
@@ -258,11 +259,22 @@ button {
   padding: 10px 20px;
 }
 
+.game-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+
+  display: grid;
+  place-items: center;
+
+  background: rgba(0, 0, 0, 0.35);
+}
+
 .clear-message {
   margin: 0;
   color: #16a34a;
   font-weight: bold;
-  font-size: 24px;
+  font-size: 32px;
 }
 
 .board-status {
@@ -285,7 +297,7 @@ button {
   margin: 0;
   color: #ea580c;
   font-weight: bold;
-  font-size: 24px;
+  font-size: 32px;
 }
 
 .overlay-message {
@@ -296,7 +308,7 @@ button {
 .overlay-submessage {
   margin: 0;
   color: #6b7280;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .challenge-title {

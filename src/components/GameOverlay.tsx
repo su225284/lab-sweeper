@@ -13,9 +13,11 @@ export default function GameOverlay({
 }: Props) {
   if (overlayType === 'boom') {
     return (
-      <div className="game-over-panel">
-        <p className="game-over">💥 BOOM!</p>
-        <p className="overlay-message">新しい盤面で続けます。</p>
+      <div className="game-overlay">
+        <div className="game-over-panel">
+          <p className="game-over">💥 BOOM!</p>
+          <p className="overlay-message">新しい盤面で続けます。</p>
+        </div>
       </div>
     )
   }
@@ -26,27 +28,31 @@ export default function GameOverlay({
 
   if (status === 'timeUp') {
     return (
-      <div className="game-over-panel">
-        <p className="time-up-message">TIME UP</p>
-        <p className="overlay-message">今回のプレイはここまでです。</p>
-        <p className="overlay-submessage">
-          次のプレイヤーの挑戦を待っています…
-        </p>
+      <div className="game-overlay">
+        <div className="game-over-panel">
+          <p className="time-up-message">TIME UP</p>
+          <p className="overlay-message">今回のプレイはここまでです。</p>
+          <p className="overlay-submessage">
+            次のプレイヤーの挑戦を待っています…
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="game-over-panel">
-      <p className="clear-message">🎉 CLEAR!</p>
-      <p className="overlay-message">チャレンジクリア！</p>
-      <Button
-        fullWidth
-        variant="primary"
-        onClick={onNextChallenge}
-      >
-        Next Challenge
-      </Button>
+      <div className="game-over-panel">
+        <p className="clear-message">🎉 CLEAR!</p>
+        <p className="overlay-message">チャレンジクリア！</p>
+        <Button
+          fullWidth
+          variant="primary"
+          onClick={onNextChallenge}
+        >
+          Next Challenge
+        </Button>
+      </div>
     </div>
   )
 }
