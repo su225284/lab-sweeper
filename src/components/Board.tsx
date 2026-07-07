@@ -37,12 +37,13 @@ function isCleared(cells: Cell[]) {
 type BoardProps = {
   settingsVersion: number
   showToast: (message: string) => void
+  onBoardSizeChange?: (size: number) => void
 }
-
 
 export default function Board({
   settingsVersion,
   showToast,
+  onBoardSizeChange,
 }: BoardProps) {
   const [cells, setCells] = useState<Cell[]>(() =>
     createInitialChallenge().cells
@@ -61,6 +62,11 @@ export default function Board({
 
   const SIZE = challenge.size
   const MINE_COUNT = challenge.mineCount
+
+  useEffect(() => {
+    onBoardSizeChange?.(challenge.size)
+  }, [challenge.size, onBoardSizeChange])
+
 
   useEffect(() => {
     const element = boardWrapperRef.current

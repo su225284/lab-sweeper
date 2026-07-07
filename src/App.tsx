@@ -32,6 +32,8 @@ function App() {
     setSettingsVersion((current) => current + 1)
   }
 
+  const [currentBoardSize, setCurrentBoardSize] = useState<number | null>(null)
+
   return (
     <main className="app">
       <section className="app-card">
@@ -43,6 +45,7 @@ function App() {
         <Board
           settingsVersion={settingsVersion}
           showToast={showToast}
+          onBoardSizeChange={setCurrentBoardSize}
         />
 
         <RankingPanel />
@@ -86,6 +89,7 @@ function App() {
       {activePanel === 'settings' && (
         <Modal title="設定" onClose={closePanel}>
           <SettingsPanel
+            currentBoardSize={currentBoardSize}
             onDeletedHistory={closePanel}
             onChangedSettings={handleChangedSettings}
             onApplySettings={closePanel}
