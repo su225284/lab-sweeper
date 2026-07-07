@@ -18,7 +18,7 @@ export function getBoardSize() {
     return DEFAULT_BOARD_SIZE
   }
 
-  return Math.min(30, Math.max(5, size))
+  return Math.min(50, Math.max(5, size))
 }
 
 export function calculateMineCount(boardSize: number) {
@@ -44,7 +44,7 @@ export function createInitialChallenge(): ChallengeDocument {
 export function createNextChallenge(
   currentChallenge: ChallengeDocument,
 ): ChallengeDocument {
-  const boardSize = getBoardSize()
+  const boardSize = currentChallenge.size
   const mineCount = calculateMineCount(boardSize)
 
   return {
