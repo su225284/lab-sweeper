@@ -43,7 +43,7 @@ export default function CellButton({
     longPressTimerRef.current = window.setTimeout(() => {
       longPressedRef.current = true
       onToggleFlag(cell.id)
-    }, 400)
+    }, 200)
   }
 
   const handlePointerUp = () => {
