@@ -46,8 +46,14 @@ export default function RankingPanel() {
 
   return (
     <Card className="ranking-panel">
-      <h2>参加ランキング</h2>
-  
+      <h2>チャレンジ参加ランキング</h2>
+
+      <p className="ranking-note">
+        ※ 同じチャレンジで複数回プレイした場合も、
+        <br />
+        参加回数は1回として集計されます。
+      </p>
+
       {ranking.length === 0 ? (
         <p>まだ履歴がありません。</p>
       ) : (

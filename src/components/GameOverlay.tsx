@@ -30,7 +30,7 @@ export default function GameOverlay({
     return (
       <div className="game-overlay">
         <div className="game-over-panel">
-          <p className="time-up-message">TIME UP</p>
+          <p className="time-up-message">⏰ TIME UP</p>
           <p className="overlay-message">今回のプレイはここまでです。</p>
           <p className="overlay-submessage">
             次のプレイヤーの挑戦を待っています…
@@ -41,15 +41,11 @@ export default function GameOverlay({
   }
 
   return (
-    <div className="game-over-panel">
+    <div className="game-overlay">
       <div className="game-over-panel">
         <p className="clear-message">🎉 CLEAR!</p>
         <p className="overlay-message">チャレンジクリア！</p>
-        <Button
-          fullWidth
-          variant="primary"
-          onClick={onNextChallenge}
-        >
+        <Button fullWidth variant="primary" onClick={onNextChallenge}>
           Next Challenge
         </Button>
       </div>

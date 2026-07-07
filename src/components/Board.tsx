@@ -220,7 +220,7 @@ export default function Board({
       setChallenge(nextChallenge)
     
       await saveCurrentChallenge(nextChallenge)
-    }, 1200)
+    }, 2000)
   
     return () => {
       window.clearTimeout(timeoutId)
@@ -339,33 +339,36 @@ export default function Board({
         saveCurrentChallenge(nextChallenge)
     
         if (result.exploded) {
-          saveChallengeHistory(
-            {
-              ...challenge,
-              status: 'failed',
-              remainingSeconds,
-              cells: nextCells,
-            },
-            'failed',
-          )
-    
+          const failedChallenge = {
+            ...challenge,
+            status: 'failed' as const,
+            remainingSeconds,
+            cells: nextCells,
+          }
+        
+          setChallenge(failedChallenge)
           setGameStatus('failed')
           setOverlayType('boom')
+        
+          saveCurrentChallenge(failedChallenge)
+          saveChallengeHistory(failedChallenge, 'failed')
+        
           return nextCells
         }
-    
+
         if (isCleared(nextCells)) {
-          saveChallengeHistory(
-            {
-              ...challenge,
-              status: 'cleared',
-              remainingSeconds,
-              cells: nextCells,
-            },
-            'cleared',
-          )
-    
+          const clearedChallenge = {
+            ...challenge,
+            status: 'cleared' as const,
+            remainingSeconds,
+            cells: nextCells,
+          }
+        
+          setChallenge(clearedChallenge)
           setGameStatus('cleared')
+        
+          saveCurrentChallenge(clearedChallenge)
+          saveChallengeHistory(clearedChallenge, 'cleared')
         }
     
         return nextCells
@@ -378,20 +381,22 @@ export default function Board({
       const explodedCells = cells.map((cell) =>
         cell.id === id ? { ...cell, opened: true } : cell,
       )
-    
-      saveChallengeHistory(
-        {
-          ...challenge,
-          status: 'failed',
-          remainingSeconds,
-          cells: explodedCells,
-        },
-        'failed',
-      )
-    
+
+      const failedChallenge = {
+        ...challenge,
+        status: 'failed' as const,
+        remainingSeconds,
+        cells: explodedCells,
+      }
+
+      setChallenge(failedChallenge)
       setCells(explodedCells)
       setGameStatus('failed')
       setOverlayType('boom')
+
+      saveCurrentChallenge(failedChallenge)
+      saveChallengeHistory(failedChallenge, 'failed')
+
       return
     }
   
@@ -408,15 +413,16 @@ export default function Board({
       setChallenge(nextChallenge)
     
       if (isCleared(nextCells)) {
-        saveChallengeHistory(
-          {
-            ...nextChallenge,
-            status: 'cleared',
-          },
-          'cleared',
-        )
-    
+        const clearedChallenge = {
+          ...nextChallenge,
+          status: 'cleared' as const,
+        }
+      
+        setChallenge(clearedChallenge)
         setGameStatus('cleared')
+      
+        saveCurrentChallenge(clearedChallenge)
+        saveChallengeHistory(clearedChallenge, 'cleared')
       }
     
       return nextCells
@@ -526,73 +532,74 @@ export default function Board({
 
   return (
     <div className="board-wrapper" ref={boardWrapperRef}>
-      <GameOverlay
-        status={gameStatus}
-        overlayType={overlayType}
-        onNextChallenge={startNextChallenge}
+      <Card className="challenge-card">
+        <div className="challenge-title">
+          第{challenge.number}回チャレンジ
+        </div>
+  
+        <div className="current-player">
+          {isOtherPlayerPlaying
+            ? `🔒 ${challenge.selectedPlayer}さんがプレイ中です`
+            : challenge.selectedPlayer && gameStatus === 'playing'
+              ? `👤 ${challenge.selectedPlayer}さんがプレイ中`
+              : '👤 次のプレイヤーを待っています'}
+        </div>
+      </Card>
+  
+      <StatusBar
+        remainingMineCount={
+          challenge.mineCount - cells.filter((cell) => cell.flagged).length
+        }
+        participantCount={challenge.participants.length}
+        remainingSeconds={remainingSeconds}
       />
-
-    <Card className="challenge-card">
-      <div className="challenge-title">
-        第{challenge.number}回チャレンジ
+  
+      <div className="play-action-row">
+        <ActionButton
+          mode={
+            gameStatus === 'ready' && !challenge.selectedPlayer
+              ? 'join'
+              : canOperate
+                ? 'quit'
+                : 'hidden'
+          }
+          onJoin={() => setIsPlayerDialogOpen(true)}
+          onQuit={quitPlaying}
+        />
       </div>
-
-      <div className="current-player">
-        {isOtherPlayerPlaying
-          ? `🔒 ${challenge.selectedPlayer}さんがプレイ中です`
-          : challenge.selectedPlayer && gameStatus === 'playing'
-            ? `👤 ${challenge.selectedPlayer}さんがプレイ中`
-            : '👤 次のプレイヤーを待っています'}
+  
+      <div className="board-area">
+        <div className="board-grid" style={boardStyle}>
+          {cells.map((cell) => (
+            <CellButton
+              key={cell.id}
+              cell={cell}
+              disabled={
+                gameStatus === 'cleared' ||
+                gameStatus === 'timeUp' ||
+                gameStatus === 'failed' ||
+                Boolean(overlayType) ||
+                (gameStatus === 'playing' && !canOperate)
+              }
+              canFlag={canOperate}
+              onOpen={openCell}
+              onToggleFlag={toggleFlag}
+            />
+          ))}
+        </div>
+  
+        <GameOverlay
+          status={gameStatus}
+          overlayType={overlayType}
+          onNextChallenge={startNextChallenge}
+        />
       </div>
-    </Card>
-
-
-    <StatusBar
-      remainingMineCount={
-        challenge.mineCount - cells.filter((cell) => cell.flagged).length
-      }
-      participantCount={challenge.participants.length}
-      remainingSeconds={remainingSeconds}
-    />
-    
-
-    <div className="play-action-row">
-    <ActionButton
-      mode={
-        gameStatus === 'ready' && !challenge.selectedPlayer
-          ? 'join'
-          : canOperate
-            ? 'quit'
-            : 'hidden'
-      }
-        onJoin={() => setIsPlayerDialogOpen(true)}
-        onQuit={quitPlaying}
-    />
-    </div>
-
-    <div className="board-grid" style={boardStyle}>
-        {cells.map((cell) => (
-          <CellButton
-            key={cell.id}
-            cell={cell}
-            disabled={
-              gameStatus === 'cleared' ||
-              gameStatus === 'timeUp' ||
-              gameStatus === 'failed' ||
-              Boolean(overlayType) ||
-              (gameStatus === 'playing' && !canOperate)
-            }
-            canFlag={canOperate}
-            onOpen={openCell}
-            onToggleFlag={toggleFlag}
-          />
-        ))}
-      </div>
+  
       <PlayerDialog
         open={isPlayerDialogOpen}
         onClose={() => setIsPlayerDialogOpen(false)}
         onStart={startPlaying}
-        />
+      />
     </div>
   )
 }

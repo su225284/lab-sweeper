@@ -54,7 +54,7 @@ setBoardSize((current) => Math.max(5, current - 1))
 }
 
 const handleIncreaseBoardSize = () => {
-setBoardSize((current) => Math.min(30, current + 1))
+setBoardSize((current) => Math.min(50, current + 1))
 }
 
 const handleApplyBoardSize = () => {
@@ -147,7 +147,7 @@ try {
           <Button
             variant="secondary"
             onClick={handleIncreaseBoardSize}
-            disabled={boardSize >= 30}
+            disabled={boardSize >= 50}
           >
             ＋
           </Button>
