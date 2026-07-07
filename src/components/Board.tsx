@@ -98,6 +98,10 @@ export default function Board({
       setRemainingSeconds(savedChallenge.remainingSeconds)
       setGameStatus(savedChallenge.status)
       setBoardReady(savedChallenge.cells.some((cell) => cell.opened))
+
+      if (savedChallenge.status === 'playing') {
+        setIsPlayerDialogOpen(false)
+      }
     })
   
     return unsubscribe
@@ -248,6 +252,7 @@ export default function Board({
 
   const openCell = async (id: number) => {
     if (overlayType) return
+
   
     if (gameStatus === 'timeUp' || gameStatus === 'cleared' || gameStatus === 'failed') {
       return
@@ -257,6 +262,10 @@ export default function Board({
       if (!challenge.selectedPlayer) {
         setIsPlayerDialogOpen(true)
       }
+      return
+    }
+    
+    if (challenge.selectedPlayer !== null && localPlayer !== challenge.selectedPlayer) {
       return
     }
   
