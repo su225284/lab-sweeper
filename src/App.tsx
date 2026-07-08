@@ -48,8 +48,6 @@ function App() {
           onBoardSizeChange={setCurrentBoardSize}
         />
 
-        <RankingPanel />
-
         <nav className="footer-menu">
           <Button
             variant="secondary"
@@ -72,6 +70,9 @@ function App() {
             設定
           </Button>
         </nav>
+
+        <RankingPanel />
+        
       </section>
 
       {activePanel === 'history' && (
@@ -99,6 +100,7 @@ function App() {
       )}
 
       {toastMessage && <Toast message={toastMessage} />}
+
     </main>
   )
 }
