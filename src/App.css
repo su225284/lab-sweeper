@@ -351,13 +351,15 @@ button {
 }
 
 .player-dialog {
-  width: min(90vw, 360px);
+  width: min(90vw, 420px);
+  max-height: 80vh;
   padding: 24px;
   border-radius: 20px;
   background: white;
-  display: grid;
+
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  color: #111827;
 }
 
 .player-dialog h2 {
@@ -367,10 +369,21 @@ button {
   font-weight: 800;
 }
 
+.player-dialog-note {
+  margin: 8px 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #555;
+  text-align: center;
+}
+
 .player-list {
   display: grid;
   gap: 10px;
-  color: #111827;
+
+  max-height: 45vh;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .secondary-button {

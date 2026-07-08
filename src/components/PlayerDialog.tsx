@@ -27,6 +27,12 @@ export default function PlayerDialog({ open, onClose, onStart }: Props) {
       <div className="player-dialog">
         <h2>プレイヤーを選択</h2>
 
+        <p className="player-dialog-note">
+          初めてプレイする方は、
+          <br />
+          「設定」→「メンバー管理」で名前を追加してください。
+        </p>
+
         <div className="player-list">
           {members.map((member) => (
             <Button
