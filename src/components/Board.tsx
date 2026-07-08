@@ -419,8 +419,16 @@ export default function Board({
     setCells((currentCells) => {
       const nextCells = openCells(currentCells, id, SIZE)
     
+      const playerName = challenge.selectedPlayer
+    
+      const nextParticipants =
+        playerName && !challenge.participants.includes(playerName)
+          ? [...challenge.participants, playerName]
+          : challenge.participants
+    
       const nextChallenge = {
         ...challenge,
+        participants: nextParticipants,
         remainingSeconds,
         cells: nextCells,
       }
@@ -433,10 +441,10 @@ export default function Board({
           ...nextChallenge,
           status: 'cleared' as const,
         }
-      
+    
         setChallenge(clearedChallenge)
         setGameStatus('cleared')
-      
+    
         saveCurrentChallenge(clearedChallenge)
         saveChallengeHistory(clearedChallenge, 'cleared')
       }
