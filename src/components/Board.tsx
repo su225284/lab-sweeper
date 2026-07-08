@@ -344,9 +344,17 @@ export default function Board({
       setCells((currentCells) => {
         const result = openAround(currentCells, id, SIZE)
         const nextCells = result.cells
+
+        const playerName = challenge.selectedPlayer
+
+        const nextParticipants =
+          playerName && !challenge.participants.includes(playerName)
+            ? [...challenge.participants, playerName]
+            : challenge.participants
     
         const nextChallenge = {
           ...challenge,
+          participants: nextParticipants,
           remainingSeconds,
           cells: nextCells,
         }
@@ -398,12 +406,20 @@ export default function Board({
         cell.id === id ? { ...cell, opened: true } : cell,
       )
 
-      const failedChallenge = {
-        ...challenge,
-        status: 'failed' as const,
-        remainingSeconds,
-        cells: explodedCells,
-      }
+      const playerName = challenge.selectedPlayer
+
+      const nextParticipants =
+        playerName && !challenge.participants.includes(playerName)
+          ? [...challenge.participants, playerName]
+          : challenge.participants
+
+        const failedChallenge = {
+          ...challenge,
+          participants: nextParticipants,
+          status: 'failed' as const,
+          remainingSeconds,
+          cells: explodedCells,
+        }
 
       setChallenge(failedChallenge)
       setCells(explodedCells)
@@ -432,6 +448,12 @@ export default function Board({
         remainingSeconds,
         cells: nextCells,
       }
+
+      console.log(
+        'saveCurrentChallenge',
+        nextChallenge.participants,
+        nextChallenge.selectedPlayer,
+      )
     
       saveCurrentChallenge(nextChallenge)
       setChallenge(nextChallenge)
