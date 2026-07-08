@@ -230,7 +230,11 @@ try {
       <div className="settings-danger-zone">
         <div>
           <strong>履歴全削除</strong>
-          <p>テスト中の履歴データをまとめて削除する機能です。</p>
+          <p>
+            テスト中の履歴データをまとめて削除する機能です。
+          <br />
+            開発者以外は触らないでください。
+          </p>
         </div>
 
         <Button
