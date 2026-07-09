@@ -27,4 +27,9 @@ export type Cell = {
         seconds: number
         nanoseconds: number
       } | null
+
+      participantCount?: number
+      openedSafeCount?: number
+      safeCellCount?: number
+      progressRate?: number
     }

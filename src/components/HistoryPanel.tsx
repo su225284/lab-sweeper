@@ -31,32 +31,59 @@ function HistoryPanel() {
         <p>まだ履歴はありません。</p>
       ) : (
         <div className="history-list">
-          {historyList.map((history) => (
+        {historyList.map((history) => {
+          const safeCellCount =
+            history.safeCellCount ??
+            history.cells.filter((cell) => !cell.hasMine).length
+
+          const openedSafeCount =
+            history.openedSafeCount ??
+            history.cells.filter((cell) => !cell.hasMine && cell.opened).length
+
+          const progressRate =
+            history.progressRate ??
+            (history.status === 'cleared'
+              ? 100
+              : safeCellCount === 0
+                ? 0
+                : Math.round((openedSafeCount / safeCellCount) * 100))
+
+          const participantCount =
+            history.participantCount ?? history.participants.length
+
+          return (
             <Card key={history.number} className="history-card">
               <div className="history-card-header">
-              <strong>
-                第{history.number}回チャレンジ
-                {history.size ? `　${history.size}×${history.size}マス` : ''}
-              </strong>
-            
+                <strong>
+                  第{history.number}回チャレンジ
+                  {history.size ? `　${history.size}×${history.size}マス` : ''}
+                </strong>
+
                 <span className={`history-status ${history.status}`}>
                   {formatStatus(history.status)}
                 </span>
               </div>
-            
+
+              {history.status === 'cleared' && history.participants.length > 0 && (
+                <div className="history-participants">
+                  <div>参加者</div>
+                  <div>{history.participants.join('、')}</div>
+                </div>
+              )}
+
+              <div className="history-stats">
+                <span>👥 {participantCount}人参加</span>
+                <span>達成率 {progressRate}%</span>
+              </div>
+
               <div className="history-card-footer">
-                <span>
-                  {history.status === 'cleared' || history.status === 'timeUp'
-                    ? `👥 ${history.participants.join(', ')}`
-                    : ''}
-                </span>
-            
                 <span className="history-time">
                   {formatFinishedAt(history.finishedAt)}
                 </span>
               </div>
             </Card>
-          ))}
+          )
+        })}
         </div>
       )}
     </section>

@@ -30,6 +30,11 @@ export type ChallengeDocument = {
   remainingSeconds: number
   cells: Cell[]
   updatedAt?: Timestamp
+
+  participantCount?: number
+  openedSafeCount?: number
+  safeCellCount?: number
+  progressRate?: number
 }
 
 const currentChallengeRef = doc(db, 'currentChallenge', 'current')
@@ -71,11 +76,42 @@ export async function saveChallengeHistory(
   challenge: ChallengeDocument,
   result: ChallengeResult,
 ) {
-  await setDoc(doc(historyCollectionRef, `challenge-${challenge.number}`), {
+  const safeCellCount = challenge.cells.filter((cell) => !cell.hasMine).length
+
+  const openedSafeCount = challenge.cells.filter(
+    (cell) => !cell.hasMine && cell.opened
+  ).length
+
+  const progressRate =
+    result === 'cleared'
+      ? 100
+      : safeCellCount === 0
+        ? 0
+        : Math.round((openedSafeCount / safeCellCount) * 100)
+
+  const historyRef = doc(historyCollectionRef, `challenge-${challenge.number}`)
+
+  const historyData = {
     ...challenge,
     status: result,
+    participantCount: challenge.participants.length,
+    openedSafeCount,
+    safeCellCount,
+    progressRate,
     finishedAt: serverTimestamp(),
-  })
+  }
+  
+  console.log('historyData', historyData)
+  
+  await setDoc(historyRef, historyData)
+
+  const savedSnapshot = await getDoc(historyRef)
+  const savedData = savedSnapshot.data()
+
+  console.log('saved progressRate', savedData?.progressRate)
+  console.log('saved participantCount', savedData?.participantCount)
+  console.log('saved openedSafeCount', savedData?.openedSafeCount)
+  console.log('saved safeCellCount', savedData?.safeCellCount)
 }
 
 export type ChallengeHistoryDocument = ChallengeDocument & {

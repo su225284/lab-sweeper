@@ -190,22 +190,36 @@ export default function Board({
     let timeoutId: number | null = null
   
     const handleTimeUp = async () => {
+      const safeCellCount = cells.filter((cell) => !cell.hasMine).length
+      const openedSafeCount = cells.filter(
+        (cell) => !cell.hasMine && cell.opened
+      ).length
+    
+      const progressRate =
+        safeCellCount === 0
+          ? 0
+          : Math.round((openedSafeCount / safeCellCount) * 100)
+    
       await saveChallengeHistory(
         {
           ...challenge,
           status: 'timeUp',
           remainingSeconds: 0,
           cells,
+          participantCount: challenge.participants?.length ?? 0,
+          openedSafeCount,
+          safeCellCount,
+          progressRate,
         },
         'timeUp',
       )
-  
+    
       if (cancelled) return
-  
+    
       await saveCurrentState('timeUp')
-  
+    
       if (cancelled) return
-  
+    
       timeoutId = window.setTimeout(() => {
         returnToReady()
       }, 3000)
@@ -330,6 +344,10 @@ export default function Board({
             status: 'cleared',
             remainingSeconds,
             cells: openedBoard,
+            participantCount: nextChallenge.participants.length,
+            openedSafeCount: openedBoard.filter((cell) => !cell.hasMine && cell.opened).length,
+            safeCellCount: openedBoard.filter((cell) => !cell.hasMine).length,
+            progressRate: 100,
           },
           'cleared',
         )
@@ -374,8 +392,26 @@ export default function Board({
           setGameStatus('failed')
           setOverlayType('boom')
         
+          const safeCellCount = nextCells.filter(
+            (cell) => !cell.hasMine
+          ).length
+        
+          const openedSafeCount = nextCells.filter(
+            (cell) => !cell.hasMine && cell.opened
+          ).length
+        
+          const historyChallenge = {
+            ...failedChallenge,
+            participantCount: nextParticipants.length,
+            safeCellCount,
+            openedSafeCount,
+            progressRate: Math.round(
+              (openedSafeCount / safeCellCount) * 100,
+            ),
+          }
+        
           saveCurrentChallenge(failedChallenge)
-          saveChallengeHistory(failedChallenge, 'failed')
+          saveChallengeHistory(historyChallenge, 'failed')
         
           return nextCells
         }
@@ -391,8 +427,20 @@ export default function Board({
           setChallenge(clearedChallenge)
           setGameStatus('cleared')
         
+          const historyChallenge = {
+            ...clearedChallenge,
+            participantCount: challenge.participants.length,
+            openedSafeCount: nextCells.filter(
+              (cell) => !cell.hasMine && cell.opened
+            ).length,
+            safeCellCount: nextCells.filter(
+              (cell) => !cell.hasMine
+            ).length,
+            progressRate: 100,
+          }
+          
           saveCurrentChallenge(clearedChallenge)
-          saveChallengeHistory(clearedChallenge, 'cleared')
+          saveChallengeHistory(historyChallenge, 'cleared')
         }
     
         return nextCells
@@ -426,8 +474,27 @@ export default function Board({
       setGameStatus('failed')
       setOverlayType('boom')
 
+      const safeCellCount = explodedCells.filter(
+        (cell) => !cell.hasMine
+      ).length
+      
+      const openedSafeCount = explodedCells.filter(
+        (cell) => !cell.hasMine && cell.opened
+      ).length
+      
+      const historyChallenge = {
+        ...failedChallenge,
+        participantCount: nextParticipants.length,
+        safeCellCount,
+        openedSafeCount,
+        progressRate:
+          safeCellCount === 0
+            ? 0
+            : Math.round((openedSafeCount / safeCellCount) * 100),
+      }
+      
       saveCurrentChallenge(failedChallenge)
-      saveChallengeHistory(failedChallenge, 'failed')
+      saveChallengeHistory(historyChallenge, 'failed')
 
       return
     }
@@ -463,12 +530,24 @@ export default function Board({
           ...nextChallenge,
           status: 'cleared' as const,
         }
-    
+      
+        const historyChallenge = {
+          ...clearedChallenge,
+          participantCount: nextChallenge.participants.length,
+          openedSafeCount: nextCells.filter(
+            (cell) => !cell.hasMine && cell.opened
+          ).length,
+          safeCellCount: nextCells.filter(
+            (cell) => !cell.hasMine
+          ).length,
+          progressRate: 100,
+        }
+      
         setChallenge(clearedChallenge)
         setGameStatus('cleared')
-    
+      
         saveCurrentChallenge(clearedChallenge)
-        saveChallengeHistory(clearedChallenge, 'cleared')
+        saveChallengeHistory(historyChallenge, 'cleared')
       }
     
       return nextCells
@@ -529,12 +608,27 @@ export default function Board({
   }
 
   const quitPlaying = async () => {
+    const safeCellCount = cells.filter((cell) => !cell.hasMine).length
+  
+    const openedSafeCount = cells.filter(
+      (cell) => !cell.hasMine && cell.opened
+    ).length
+  
+    const progressRate =
+      safeCellCount === 0
+        ? 0
+        : Math.round((openedSafeCount / safeCellCount) * 100)
+  
     await saveChallengeHistory(
       {
         ...challenge,
         status: 'timeUp',
         remainingSeconds,
         cells,
+        participantCount: challenge.participants.length,
+        openedSafeCount,
+        safeCellCount,
+        progressRate,
       },
       'timeUp',
     )

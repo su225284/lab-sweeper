@@ -558,6 +558,15 @@ button {
   white-space: nowrap;
 }
 
+
+.history-stats {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
