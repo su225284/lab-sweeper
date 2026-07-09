@@ -63,18 +63,20 @@ function HistoryPanel() {
                   {formatStatus(history.status)}
                 </span>
               </div>
-
-              {history.status === 'cleared' && history.participants.length > 0 && (
-                <div className="history-participants">
-                  <div>参加者</div>
-                  <div>{history.participants.join('、')}</div>
-                </div>
-              )}
+              
 
               <div className="history-stats">
-                <span>👥 {participantCount}人参加</span>
+                <span>👥 {participantCount}人</span>
                 <span>達成率 {progressRate}%</span>
               </div>
+
+              {(history.status === 'cleared' || history.status === 'timeUp') &&
+                history.participants.length > 0 && (
+                  <div className="history-participants">
+                    <strong>参加者：</strong>
+                    <span>{history.participants.join('、')}</span>
+                  </div>
+              )}
 
               <div className="history-card-footer">
                 <span className="history-time">

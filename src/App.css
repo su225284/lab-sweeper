@@ -548,7 +548,8 @@ button {
 
 .history-card-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  margin-top: 10px;
   align-items: center;
   font-size: 0.9rem;
   color: #666;
@@ -561,10 +562,20 @@ button {
 
 .history-stats {
   display: flex;
-  gap: 24px;
-  justify-content: center;
-  margin-top: 12px;
+  gap: 32px;
+  justify-content: flex-start;
+  margin-top: 10px;
   margin-bottom: 8px;
+}
+
+.history-participants {
+  margin-top: 6px;
+  text-align: left;
+  line-height: 1.6;
+}
+
+.history-participants strong {
+  margin-right: 6px;
 }
 
 .modal-backdrop {

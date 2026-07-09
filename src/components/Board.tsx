@@ -699,7 +699,12 @@ export default function Board({
         remainingMineCount={
           challenge.mineCount - cells.filter((cell) => cell.flagged).length
         }
-        participantCount={challenge.participants.length}
+        participantCount={
+          challenge.selectedPlayer &&
+          !challenge.participants.includes(challenge.selectedPlayer)
+            ? challenge.participants.length + 1
+            : challenge.participants.length
+        }
         remainingSeconds={remainingSeconds}
       />
   
