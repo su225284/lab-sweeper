@@ -1,6 +1,12 @@
 import { createBoard } from './createBoard'
 import type { ChallengeDocument } from './types'
 
+function cloneCells(cells: ChallengeDocument['cells']) {
+  return cells.map((cell) => ({
+    ...cell,
+  }))
+}
+
 export const DEFAULT_BOARD_SIZE = 20
 export const DEFAULT_MINE_RATE = 0.2
 export const DEFAULT_TIME_LIMIT_SECONDS = 60
@@ -29,6 +35,7 @@ export function createInitialChallenge(
   boardSize = DEFAULT_BOARD_SIZE,
 ): ChallengeDocument {
   const mineCount = calculateMineCount(boardSize)
+  const cells = createBoard(boardSize)
 
   return {
     number: 1,
@@ -38,7 +45,9 @@ export function createInitialChallenge(
     selectedPlayer: null,
     status: 'ready',
     remainingSeconds: DEFAULT_TIME_LIMIT_SECONDS,
-    cells: createBoard(boardSize),
+    cells,
+    confirmedCells: cloneCells(cells),
+    explosionCount: 0,
   }
 }
 
@@ -47,6 +56,7 @@ export function createNextChallenge(
 ): ChallengeDocument {
   const boardSize = currentChallenge.size
   const mineCount = calculateMineCount(boardSize)
+  const cells = createBoard(boardSize)
 
   return {
     ...currentChallenge,
@@ -57,7 +67,9 @@ export function createNextChallenge(
     selectedPlayer: null,
     status: 'ready',
     remainingSeconds: DEFAULT_TIME_LIMIT_SECONDS,
-    cells: createBoard(boardSize),
+    cells,
+    confirmedCells: cloneCells(cells),
+    explosionCount: 0,
   }
 }
 
@@ -66,6 +78,7 @@ export function recreateChallengeBoard(
   boardSize: number,
 ): ChallengeDocument {
   const mineCount = calculateMineCount(boardSize)
+  const cells = createBoard(boardSize)
 
   return {
     ...currentChallenge,
@@ -75,6 +88,8 @@ export function recreateChallengeBoard(
     selectedPlayer: null,
     status: 'ready',
     remainingSeconds: DEFAULT_TIME_LIMIT_SECONDS,
-    cells: createBoard(boardSize),
+    cells,
+    confirmedCells: cloneCells(cells),
+    explosionCount: 0,
   }
 }

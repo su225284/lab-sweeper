@@ -3,12 +3,14 @@ import Button from './Button'
 type Props = {
   status: 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
   overlayType: 'boom' | null
+  explosionCount: number
   onNextChallenge: () => void
 }
 
 export default function GameOverlay({
   status,
   overlayType,
+  explosionCount,
   onNextChallenge,
 }: Props) {
   if (overlayType === 'boom') {
@@ -16,7 +18,18 @@ export default function GameOverlay({
       <div className="game-overlay">
         <div className="game-over-panel">
           <p className="game-over">💥 BOOM!</p>
-          <p className="overlay-message">新しい盤面で続けます。</p>
+  
+          <p className="overlay-message">
+            今回のプレイ内容を元に戻しました
+          </p>
+  
+          <p className="overlay-count">
+            爆発回数：計{explosionCount}回
+          </p>
+  
+          <p className="overlay-submessage">
+            チャレンジは続きます
+          </p>
         </div>
       </div>
     )
@@ -46,7 +59,7 @@ export default function GameOverlay({
         <p className="clear-message">🎉 CLEAR!</p>
         <p className="overlay-message">チャレンジクリア！</p>
         <Button fullWidth variant="primary" onClick={onNextChallenge}>
-          Next Challenge
+          次のチャレンジへ
         </Button>
       </div>
     </div>

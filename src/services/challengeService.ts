@@ -29,12 +29,33 @@ export type ChallengeDocument = {
   status: ChallengeStatus
   remainingSeconds: number
   cells: Cell[]
+
+  confirmedCells: Cell[]
+  explosionCount: number
+  
   updatedAt?: Timestamp
 
   participantCount?: number
   openedSafeCount?: number
   safeCellCount?: number
   progressRate?: number
+}
+
+function normalizeChallenge(
+  data: Partial<ChallengeDocument>,
+): ChallengeDocument {
+  const cells = data.cells ?? []
+
+  return {
+    ...data,
+    cells,
+    confirmedCells:
+      data.confirmedCells ??
+      cells.map((cell) => ({
+        ...cell,
+      })),
+    explosionCount: data.explosionCount ?? 0,
+  } as ChallengeDocument
 }
 
 const currentChallengeRef = doc(db, 'currentChallenge', 'current')
@@ -57,7 +78,9 @@ export async function loadCurrentChallenge() {
     return null
   }
 
-  return snapshot.data() as ChallengeDocument
+  return normalizeChallenge(
+    snapshot.data() as Partial<ChallengeDocument>,
+  )
 }
 
 export function subscribeCurrentChallenge(
@@ -66,7 +89,11 @@ export function subscribeCurrentChallenge(
   return onSnapshot(currentChallengeRef, (snapshot) => {
     if (!snapshot.exists()) return
 
-    onChange(snapshot.data() as ChallengeDocument)
+    onChange(
+      normalizeChallenge(
+        snapshot.data() as Partial<ChallengeDocument>,
+      ),
+    )
   })
 }
 

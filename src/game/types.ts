@@ -22,6 +22,9 @@ export type Cell = {
       status: ChallengeStatus
       remainingSeconds: number
       cells: Cell[]
+
+      confirmedCells: Cell[]
+      explosionCount: number
     
       finishedAt?: {
         seconds: number

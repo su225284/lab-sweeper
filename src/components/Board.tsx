@@ -26,6 +26,20 @@ import {
 } from '../services/challengeService'
 import { subscribeBoardSize } from '../services/settingsService'
 
+function cloneCells(cells: Cell[]) {
+  return cells.map((cell) => ({
+    ...cell,
+  }))
+}
+
+function createClosedSnapshot(cells: Cell[]) {
+  return cells.map((cell) => ({
+    ...cell,
+    opened: false,
+    flagged: false,
+  }))
+}
+
 const TIME_LIMIT_SECONDS = DEFAULT_TIME_LIMIT_SECONDS
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
@@ -239,17 +253,8 @@ export default function Board({
   useEffect(() => {
     if (overlayType !== 'boom') return
   
-    const timeoutId = window.setTimeout(async () => {
-      const nextChallenge = createNextChallenge(challenge)
-    
-      setCells(nextChallenge.cells)
-      setBoardReady(false)
+    const timeoutId = window.setTimeout(() => {
       setOverlayType(null)
-      setGameStatus('ready')
-      setRemainingSeconds(nextChallenge.remainingSeconds)
-      setChallenge(nextChallenge)
-    
-      await saveCurrentChallenge(nextChallenge)
     }, 2000)
   
     return () => {
@@ -329,30 +334,67 @@ export default function Board({
     if (!boardReady) {
       console.log('Board size:', SIZE)
       console.log('Mine count:', MINE_COUNT)
-      const boardWithMines = placeMines(cells, SIZE, MINE_COUNT, id)
-      const boardWithNumbers = calculateNumbers(boardWithMines, SIZE)
-      const openedBoard = openCells(boardWithNumbers, id, SIZE)
-      const nextChallenge = await addCurrentPlayerToParticipants(openedBoard)
     
+      const boardWithMines = placeMines(
+        cells,
+        SIZE,
+        MINE_COUNT,
+        id,
+      )
+    
+      const boardWithNumbers = calculateNumbers(
+        boardWithMines,
+        SIZE,
+      )
+    
+      const openedBoard = openCells(
+        boardWithNumbers,
+        id,
+        SIZE,
+      )
+    
+      // 地雷と数字は維持し、すべて閉じた状態を復元地点にする
+      const confirmedCells = boardWithNumbers.map((cell) => ({
+        ...cell,
+        opened: false,
+        flagged: false,
+      }))
+    
+      const playerName = challenge.selectedPlayer
+    
+      const nextParticipants =
+        playerName && !challenge.participants.includes(playerName)
+          ? [...challenge.participants, playerName]
+          : challenge.participants
+    
+      const nextChallenge: ChallengeDocument = {
+        ...challenge,
+        participants: nextParticipants,
+        remainingSeconds,
+        cells: openedBoard,
+        confirmedCells,
+      }
+    
+      setChallenge(nextChallenge)
       setCells(openedBoard)
       setBoardReady(true)
     
+      await saveCurrentChallenge(nextChallenge)
+    
       if (isCleared(openedBoard)) {
+        const clearedChallenge: ChallengeDocument = {
+          ...nextChallenge,
+          status: 'cleared',
+        }
+    
+        setChallenge(clearedChallenge)
+        setGameStatus('cleared')
+    
+        await saveCurrentChallenge(clearedChallenge)
         await saveChallengeHistory(
-          {
-            ...nextChallenge,
-            status: 'cleared',
-            remainingSeconds,
-            cells: openedBoard,
-            participantCount: nextChallenge.participants.length,
-            openedSafeCount: openedBoard.filter((cell) => !cell.hasMine && cell.opened).length,
-            safeCellCount: openedBoard.filter((cell) => !cell.hasMine).length,
-            progressRate: 100,
-          },
+          clearedChallenge,
           'cleared',
         )
-    
-        setGameStatus('cleared')
       }
     
       return
@@ -381,39 +423,28 @@ export default function Board({
         saveCurrentChallenge(nextChallenge)
     
         if (result.exploded) {
-          const failedChallenge = {
+          const restoredCells = cloneCells(challenge.confirmedCells)
+        
+          const nextChallenge: ChallengeDocument = {
             ...challenge,
-            status: 'failed' as const,
-            remainingSeconds,
-            cells: nextCells,
+            participants: nextParticipants,
+            selectedPlayer: null,
+            status: 'ready',
+            remainingSeconds: TIME_LIMIT_SECONDS,
+            cells: restoredCells,
+            explosionCount: challenge.explosionCount + 1,
           }
         
-          setChallenge(failedChallenge)
-          setGameStatus('failed')
+          setChallenge(nextChallenge)
+          setCells(restoredCells)
+          setGameStatus('ready')
+          setRemainingSeconds(TIME_LIMIT_SECONDS)
+          setBoardReady(true)
           setOverlayType('boom')
         
-          const safeCellCount = nextCells.filter(
-            (cell) => !cell.hasMine
-          ).length
+          saveCurrentChallenge(nextChallenge)
         
-          const openedSafeCount = nextCells.filter(
-            (cell) => !cell.hasMine && cell.opened
-          ).length
-        
-          const historyChallenge = {
-            ...failedChallenge,
-            participantCount: nextParticipants.length,
-            safeCellCount,
-            openedSafeCount,
-            progressRate: Math.round(
-              (openedSafeCount / safeCellCount) * 100,
-            ),
-          }
-        
-          saveCurrentChallenge(failedChallenge)
-          saveChallengeHistory(historyChallenge, 'failed')
-        
-          return nextCells
+          return restoredCells
         }
 
         if (isCleared(nextCells)) {
@@ -450,52 +481,34 @@ export default function Board({
     }
   
     if (targetCell.hasMine) {
-      const explodedCells = cells.map((cell) =>
-        cell.id === id ? { ...cell, opened: true } : cell,
-      )
-
       const playerName = challenge.selectedPlayer
-
+    
       const nextParticipants =
         playerName && !challenge.participants.includes(playerName)
           ? [...challenge.participants, playerName]
           : challenge.participants
-
-        const failedChallenge = {
-          ...challenge,
-          participants: nextParticipants,
-          status: 'failed' as const,
-          remainingSeconds,
-          cells: explodedCells,
-        }
-
-      setChallenge(failedChallenge)
-      setCells(explodedCells)
-      setGameStatus('failed')
-      setOverlayType('boom')
-
-      const safeCellCount = explodedCells.filter(
-        (cell) => !cell.hasMine
-      ).length
-      
-      const openedSafeCount = explodedCells.filter(
-        (cell) => !cell.hasMine && cell.opened
-      ).length
-      
-      const historyChallenge = {
-        ...failedChallenge,
-        participantCount: nextParticipants.length,
-        safeCellCount,
-        openedSafeCount,
-        progressRate:
-          safeCellCount === 0
-            ? 0
-            : Math.round((openedSafeCount / safeCellCount) * 100),
+    
+      const restoredCells = cloneCells(challenge.confirmedCells)
+    
+      const nextChallenge: ChallengeDocument = {
+        ...challenge,
+        participants: nextParticipants,
+        selectedPlayer: null,
+        status: 'ready',
+        remainingSeconds: TIME_LIMIT_SECONDS,
+        cells: restoredCells,
+        explosionCount: challenge.explosionCount + 1,
       }
-      
-      saveCurrentChallenge(failedChallenge)
-      saveChallengeHistory(historyChallenge, 'failed')
-
+    
+      setChallenge(nextChallenge)
+      setCells(restoredCells)
+      setGameStatus('ready')
+      setRemainingSeconds(TIME_LIMIT_SECONDS)
+      setBoardReady(true)
+      setOverlayType('boom')
+    
+      await saveCurrentChallenge(nextChallenge)
+    
       return
     }
   
@@ -509,7 +522,8 @@ export default function Board({
           ? [...challenge.participants, playerName]
           : challenge.participants
     
-      const nextChallenge = {
+    
+      const nextChallenge: ChallengeDocument = {
         ...challenge,
         participants: nextParticipants,
         remainingSeconds,
@@ -590,51 +604,63 @@ export default function Board({
   }
 
   const returnToReady = async () => {
-    const nextChallenge = {
+    const confirmedCells = cloneCells(cells)
+  
+    const playerName = challenge.selectedPlayer
+  
+    const nextParticipants =
+      playerName && !challenge.participants.includes(playerName)
+        ? [...challenge.participants, playerName]
+        : challenge.participants
+  
+    const nextChallenge: ChallengeDocument = {
       ...challenge,
+      participants: nextParticipants,
       selectedPlayer: null,
-      status: 'ready' as const,
+      status: 'ready',
       remainingSeconds: TIME_LIMIT_SECONDS,
-      cells,
+      cells: confirmedCells,
+      confirmedCells,
     }
   
     setGameStatus('ready')
     setRemainingSeconds(TIME_LIMIT_SECONDS)
     setOverlayType(null)
     setChallenge(nextChallenge)
-    setBoardReady(cells.some((cell) => cell.opened))
+    setCells(confirmedCells)
+    setBoardReady(confirmedCells.some((cell) => cell.opened))
   
     await saveCurrentChallenge(nextChallenge)
   }
 
   const quitPlaying = async () => {
-    const safeCellCount = cells.filter((cell) => !cell.hasMine).length
+    const confirmedCells = cloneCells(cells)
   
-    const openedSafeCount = cells.filter(
-      (cell) => !cell.hasMine && cell.opened
-    ).length
+    const playerName = challenge.selectedPlayer
   
-    const progressRate =
-      safeCellCount === 0
-        ? 0
-        : Math.round((openedSafeCount / safeCellCount) * 100)
+    const nextParticipants =
+      playerName && !challenge.participants.includes(playerName)
+        ? [...challenge.participants, playerName]
+        : challenge.participants
   
-    await saveChallengeHistory(
-      {
-        ...challenge,
-        status: 'timeUp',
-        remainingSeconds,
-        cells,
-        participantCount: challenge.participants.length,
-        openedSafeCount,
-        safeCellCount,
-        progressRate,
-      },
-      'timeUp',
-    )
+    const nextChallenge: ChallengeDocument = {
+      ...challenge,
+      participants: nextParticipants,
+      selectedPlayer: null,
+      status: 'ready',
+      remainingSeconds: TIME_LIMIT_SECONDS,
+      cells: confirmedCells,
+      confirmedCells,
+    }
   
-    await saveCurrentState('timeUp')
-    setGameStatus('timeUp')
+    setChallenge(nextChallenge)
+    setCells(confirmedCells)
+    setGameStatus('ready')
+    setRemainingSeconds(TIME_LIMIT_SECONDS)
+    setOverlayType(null)
+    setBoardReady(confirmedCells.some((cell) => cell.opened))
+  
+    await saveCurrentChallenge(nextChallenge)
   }
 
   const saveCurrentState = async (status = gameStatus) => {
@@ -751,6 +777,7 @@ export default function Board({
         <GameOverlay
           status={gameStatus}
           overlayType={overlayType}
+          explosionCount={challenge.explosionCount}
           onNextChallenge={startNextChallenge}
         />
       </div>
