@@ -652,6 +652,17 @@ export default function Board({
   localPlayer === challenge.selectedPlayer &&
   !overlayType
 
+  const currentParticipantCount = new Set([
+    ...challenge.participants,
+    ...(challenge.selectedPlayer ? [challenge.selectedPlayer] : []),
+  ]).size
+  
+  console.log('current participants', {
+    participants: challenge.participants,
+    selectedPlayer: challenge.selectedPlayer,
+    currentParticipantCount,
+  })
+
   const isOtherPlayerPlaying =
   gameStatus === 'playing' &&
   challenge.selectedPlayer !== null &&
@@ -699,12 +710,7 @@ export default function Board({
         remainingMineCount={
           challenge.mineCount - cells.filter((cell) => cell.flagged).length
         }
-        participantCount={
-          challenge.selectedPlayer &&
-          !challenge.participants.includes(challenge.selectedPlayer)
-            ? challenge.participants.length + 1
-            : challenge.participants.length
-        }
+        participantCount={currentParticipantCount}
         remainingSeconds={remainingSeconds}
       />
   
