@@ -209,24 +209,6 @@ export default function Board({
         (cell) => !cell.hasMine && cell.opened
       ).length
     
-      const progressRate =
-        safeCellCount === 0
-          ? 0
-          : Math.round((openedSafeCount / safeCellCount) * 100)
-    
-      await saveChallengeHistory(
-        {
-          ...challenge,
-          status: 'timeUp',
-          remainingSeconds: 0,
-          cells,
-          participantCount: challenge.participants?.length ?? 0,
-          openedSafeCount,
-          safeCellCount,
-          progressRate,
-        },
-        'timeUp',
-      )
     
       if (cancelled) return
     

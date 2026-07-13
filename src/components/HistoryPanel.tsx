@@ -37,16 +37,15 @@ function HistoryPanel() {
       historyQuery,
       (snapshot) => {
         const histories = snapshot.docs
-          .map(
-            (document) =>
-              document.data() as ChallengeDocument,
-          )
-          .filter(
-            (history) =>
-              history.status === 'cleared',
-          )
-
-        setHistoryList(histories)
+        .map(
+          (document) =>
+            document.data() as ChallengeDocument,
+        )
+        .filter(
+          (history) => history.status === 'cleared',
+        )
+      
+      setHistoryList(histories)
       },
     )
 
