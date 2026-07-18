@@ -8,6 +8,7 @@ import RulePanel from './components/RulePanel'
 import Button from './components/Button'
 import SettingsPanel from './components/SettingsPanel'
 import Toast from './components/Toast'
+import DevelopmentHistoryPanel from './components/DevelopmentHistoryPanel'
 
 type ActivePanel = 'history' | 'rules' | 'settings' | null
 
@@ -72,6 +73,8 @@ function App() {
         </nav>
 
         <RankingPanel />
+
+        <DevelopmentHistoryPanel />
         
       </section>
 

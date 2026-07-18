@@ -1066,3 +1066,63 @@ button {
   padding: 8px 12px;
   font-size: 0.9rem;
 }
+
+
+.development-history-card {
+  margin-top: 16px;
+}
+
+.development-history-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: none;
+  border: none;
+  color: inherit;
+
+  font: inherit;
+  font-weight: 700;
+
+  cursor: pointer;
+  padding: 0;
+}
+
+.development-history-content {
+  margin-top: 16px;
+}
+
+.development-history-item {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.development-history-item:first-child {
+  margin-top: 0;
+}
+
+.development-history-item h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.development-history-title {
+  display: block;
+  text-align: left;
+  margin-bottom: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.development-history-item ul {
+  margin: 0;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.development-history-item li {
+  font-size: 1rem;
+  line-height: 1.6;
+}
