@@ -44,7 +44,7 @@ const TIME_LIMIT_SECONDS = DEFAULT_TIME_LIMIT_SECONDS
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
 
-type OverlayType = 'boom' | null
+type OverlayType = 'boom' | 'timeUp' | null
 
 function isCleared(cells: Cell[]) {
   return cells.every((cell) => cell.hasMine || cell.opened)
@@ -185,6 +185,7 @@ export default function Board({
         if (currentSeconds <= 1) {
           window.clearInterval(timerId)
           setGameStatus('timeUp')
+          setOverlayType('timeUp')
           return 0
         }
 
@@ -200,44 +201,24 @@ export default function Board({
   useEffect(() => {
     if (gameStatus !== 'timeUp') return
   
-    let cancelled = false
-    let timeoutId: number | null = null
-  
-    const handleTimeUp = async () => {
-      const safeCellCount = cells.filter((cell) => !cell.hasMine).length
-      const openedSafeCount = cells.filter(
-        (cell) => !cell.hasMine && cell.opened
-      ).length
-    
-    
-      if (cancelled) return
-    
-      await saveCurrentState('timeUp')
-    
-      if (cancelled) return
-    
-      timeoutId = window.setTimeout(() => {
-        returnToReady()
-      }, 3000)
-    }
-  
-    handleTimeUp()
+    const timeoutId = window.setTimeout(() => {
+      quitPlaying()
+    }, 2000)
   
     return () => {
-      cancelled = true
-  
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId)
-      }
+      window.clearTimeout(timeoutId)
     }
   }, [gameStatus])
 
   useEffect(() => {
-    if (overlayType !== 'boom') return
+    if (overlayType === null) return
+  
+    const duration =
+      overlayType === 'timeUp' ? 3000 : 2000
   
     const timeoutId = window.setTimeout(() => {
       setOverlayType(null)
-    }, 2000)
+    }, duration)
   
     return () => {
       window.clearTimeout(timeoutId)
@@ -639,8 +620,9 @@ export default function Board({
     setCells(confirmedCells)
     setGameStatus('ready')
     setRemainingSeconds(TIME_LIMIT_SECONDS)
-    setOverlayType(null)
     setBoardReady(confirmedCells.some((cell) => cell.opened))
+  
+    setOverlayType('timeUp')
   
     await saveCurrentChallenge(nextChallenge)
   }
