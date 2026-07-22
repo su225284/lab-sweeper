@@ -18,6 +18,16 @@ export default function DevelopmentHistoryPanel() {
       {isOpen && (
         <div className="development-history-content">
           <section className="development-history-item">
+            <h3>2026/07/23</h3>
+            <div className="development-history-title">
+              ⏱️ タイマー・同期処理を改善
+            </div>
+            <ul>
+              <li>タイマーの同期処理を改善</li>
+              <li>盤面の保存・復元をスムーズに改善</li>
+            </ul>
+          </section>
+          <section className="development-history-item">
             <h3>2026/07/18</h3>
             <div className="development-history-title">
                 ⏰ タイムアップ時の挙動を修正
