@@ -45,7 +45,7 @@ const TIME_LIMIT_SECONDS = DEFAULT_TIME_LIMIT_SECONDS
 
 type GameStatus = 'ready' | 'playing' | 'cleared' | 'failed' | 'timeUp'
 
-type OverlayType = 'boom' | 'timeUp' | null
+type OverlayType = 'boom' | 'timeUp' | 'quit' | null
 
 function isCleared(cells: Cell[]) {
   return cells.every((cell) => cell.hasMine || cell.opened)
@@ -85,6 +85,8 @@ export default function Board({
   const SIZE = challenge.size
   const MINE_COUNT = challenge.mineCount
 
+  const activeTimerSessionRef = useRef<string | null>(null)
+
   useEffect(() => {
     const unsubscribe = subscribeBoardSize(setConfiguredBoardSize)
   
@@ -115,24 +117,40 @@ export default function Board({
     const unsubscribe = subscribeCurrentChallenge(async (savedChallenge) => {
       if (!savedChallenge.cells || !Array.isArray(savedChallenge.cells)) {
         const resetChallenge = createInitialChallenge()
-      
+  
         await saveCurrentChallenge(resetChallenge)
-      
+  
+        activeTimerSessionRef.current = null
+  
         setChallenge(resetChallenge)
         setCells(resetChallenge.cells)
         setRemainingSeconds(resetChallenge.remainingSeconds)
         setGameStatus(resetChallenge.status)
         setBoardReady(false)
-      
+  
         return
       }
   
+      const timerSessionKey =
+        savedChallenge.status === 'playing'
+          ? `${savedChallenge.number}-${savedChallenge.selectedPlayer ?? ''}`
+          : null
+  
+      const isExistingPlayingSession =
+        timerSessionKey !== null &&
+        activeTimerSessionRef.current === timerSessionKey
+  
+      if (!isExistingPlayingSession) {
+        setRemainingSeconds(savedChallenge.remainingSeconds)
+      }
+  
+      activeTimerSessionRef.current = timerSessionKey
+  
       setChallenge(savedChallenge)
       setCells(savedChallenge.cells)
-      setRemainingSeconds(savedChallenge.remainingSeconds)
       setGameStatus(savedChallenge.status)
       setBoardReady(savedChallenge.cells.some((cell) => cell.opened))
-
+  
       if (savedChallenge.status === 'playing') {
         setIsPlayerDialogOpen(false)
       }
@@ -170,7 +188,7 @@ export default function Board({
     setGameStatus('ready')
     setRemainingSeconds(nextChallenge.remainingSeconds)
     
-    saveCurrentChallenge(nextChallenge)
+    void saveCurrentChallenge(nextChallenge)
   
     showToast(
       `盤面サイズを ${nextChallenge.size}×${nextChallenge.size} に変更しました。`,
@@ -182,47 +200,52 @@ export default function Board({
     if (gameStatus !== 'playing' || overlayType) return
   
     const timerId = window.setInterval(() => {
-      setRemainingSeconds((currentSeconds) => {
-        if (currentSeconds <= 1) {
-          window.clearInterval(timerId)
-        
-          const playerName = challenge.selectedPlayer
-        
-          const nextParticipants =
-            playerName && !challenge.participants.includes(playerName)
-              ? [...challenge.participants, playerName]
-              : challenge.participants
-        
-          const nextChallenge: ChallengeDocument = {
-            ...challenge,
-            participants: nextParticipants,
-            selectedPlayer: null,
-            status: 'timeUp',
-            remainingSeconds: 0,
-          }
-        
-          setChallenge(nextChallenge)
-          setGameStatus('timeUp')
-          setOverlayType('timeUp')
-        
-          void updateCurrentChallenge({
-            participants: nextParticipants,
-            selectedPlayer: null,
-            status: 'timeUp',
-            remainingSeconds: 0,
-          })
-        
-          return 0
-        }
-  
-        return currentSeconds - 1
-      })
+      setRemainingSeconds((currentSeconds) =>
+        Math.max(currentSeconds - 1, 0),
+      )
     }, 1000)
   
     return () => {
       window.clearInterval(timerId)
     }
   }, [gameStatus, overlayType])
+
+  useEffect(() => {
+    if (gameStatus !== 'playing') return
+    if (remainingSeconds > 0) return
+  
+    const playerName = challenge.selectedPlayer
+  
+    const nextParticipants =
+      playerName && !challenge.participants.includes(playerName)
+        ? [...challenge.participants, playerName]
+        : challenge.participants
+  
+    const nextChallenge: ChallengeDocument = {
+      ...challenge,
+      participants: nextParticipants,
+      selectedPlayer: null,
+      status: 'timeUp',
+      remainingSeconds: 0,
+    }
+  
+    setChallenge(nextChallenge)
+    setGameStatus('timeUp')
+    setOverlayType('timeUp')
+  
+    void updateCurrentChallenge({
+      participants: nextParticipants,
+      selectedPlayer: null,
+      status: 'timeUp',
+      remainingSeconds: 0,
+    })
+  }, [
+    remainingSeconds,
+    gameStatus,
+    challenge,
+  ])
+
+  
 
   useEffect(() => {
     if (gameStatus !== 'timeUp') return
@@ -311,7 +334,6 @@ export default function Board({
     await updateCurrentChallenge({
       participants: nextChallenge.participants,
       cells: nextCells,
-      remainingSeconds,
     })
 
     return nextChallenge
@@ -394,7 +416,6 @@ export default function Board({
     
       await updateCurrentChallenge({
         participants: nextParticipants,
-        remainingSeconds,
         cells: openedBoard,
         confirmedCells,
       })
@@ -449,7 +470,6 @@ export default function Board({
         void updateCurrentChallenge({
           participants: nextParticipants,
           cells: nextCells,
-          remainingSeconds,
         })
 
         if (result.exploded) {
@@ -580,16 +600,9 @@ export default function Board({
         remainingSeconds,
         cells: nextCells,
       }
-
-      console.log(
-        'saveCurrentChallenge',
-        nextChallenge.participants,
-        nextChallenge.selectedPlayer,
-      )
     
       void updateCurrentChallenge({
         participants: nextParticipants,
-        remainingSeconds,
         cells: nextCells,
       })
 
@@ -691,7 +704,7 @@ export default function Board({
   
     setGameStatus('ready')
     setRemainingSeconds(TIME_LIMIT_SECONDS)
-    setOverlayType(null)
+    setOverlayType('quit')
     setChallenge(nextChallenge)
     setCells(confirmedCells)
     setBoardReady(confirmedCells.some((cell) => cell.opened))
@@ -704,6 +717,10 @@ export default function Board({
       cells: confirmedCells,
       confirmedCells,
     })
+  
+    window.setTimeout(() => {
+      setOverlayType(null)
+    }, 2000)
   }
 
   const canOperate =
