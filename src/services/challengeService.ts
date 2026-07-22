@@ -71,6 +71,19 @@ export async function saveCurrentChallenge(challenge: ChallengeDocument) {
   )
 }
 
+export async function updateCurrentChallenge(
+  updates: Partial<ChallengeDocument>,
+) {
+  await setDoc(
+    currentChallengeRef,
+    {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}
+
 export async function loadCurrentChallenge() {
   const snapshot = await getDoc(currentChallengeRef)
 
