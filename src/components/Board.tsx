@@ -136,11 +136,11 @@ export default function Board({
           ? `${savedChallenge.number}-${savedChallenge.selectedPlayer ?? ''}`
           : null
   
-      const isExistingPlayingSession =
-        timerSessionKey !== null &&
-        activeTimerSessionRef.current === timerSessionKey
-  
-      if (!isExistingPlayingSession) {
+      if (savedChallenge.status === 'playing') {
+        setRemainingSeconds((currentSeconds) =>
+          Math.min(currentSeconds, savedChallenge.remainingSeconds),
+        )
+      } else {
         setRemainingSeconds(savedChallenge.remainingSeconds)
       }
   
