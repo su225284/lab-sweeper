@@ -87,6 +87,8 @@ export default function Board({
 
   const activeTimerSessionRef = useRef<string | null>(null)
 
+  const [isSavingEnd, setIsSavingEnd] = useState(false)
+
   useEffect(() => {
     const unsubscribe = subscribeBoardSize(setConfiguredBoardSize)
   
@@ -213,42 +215,58 @@ export default function Board({
   useEffect(() => {
     if (gameStatus !== 'playing') return
     if (remainingSeconds > 0) return
+    if (isSavingEnd) return
   
-    const playerName = challenge.selectedPlayer
+    const handleTimeUp = async () => {
+      const playerName = challenge.selectedPlayer
   
-    const nextParticipants =
-      playerName && !challenge.participants.includes(playerName)
-        ? [...challenge.participants, playerName]
-        : challenge.participants
+      const nextParticipants =
+        playerName && !challenge.participants.includes(playerName)
+          ? [...challenge.participants, playerName]
+          : challenge.participants
   
-    const nextChallenge: ChallengeDocument = {
-      ...challenge,
-      participants: nextParticipants,
-      selectedPlayer: null,
-      status: 'timeUp',
-      remainingSeconds: 0,
+      const nextChallenge: ChallengeDocument = {
+        ...challenge,
+        participants: nextParticipants,
+        selectedPlayer: null,
+        status: 'timeUp',
+        remainingSeconds: 0,
+      }
+  
+      // TIME UPはすぐ表示する
+      setChallenge(nextChallenge)
+      setGameStatus('timeUp')
+      setOverlayType('timeUp')
+      setIsSavingEnd(true)
+  
+      try {
+        await updateCurrentChallenge({
+          participants: nextParticipants,
+          selectedPlayer: null,
+          status: 'timeUp',
+          remainingSeconds: 0,
+        })
+      } catch (error) {
+        console.error('タイムアップ状態の保存に失敗しました', error)
+      } finally {
+        setIsSavingEnd(false)
+      }
     }
   
-    setChallenge(nextChallenge)
-    setGameStatus('timeUp')
-    setOverlayType('timeUp')
-  
-    void updateCurrentChallenge({
-      participants: nextParticipants,
-      selectedPlayer: null,
-      status: 'timeUp',
-      remainingSeconds: 0,
-    })
+    void handleTimeUp()
   }, [
     remainingSeconds,
     gameStatus,
-    challenge,
+    isSavingEnd,
+    challenge.selectedPlayer,
+    challenge.participants,
   ])
 
   
 
   useEffect(() => {
     if (gameStatus !== 'timeUp') return
+    if (isSavingEnd) return
   
     const timeoutId = window.setTimeout(() => {
       const confirmedCells = cloneCells(cells)
@@ -280,7 +298,7 @@ export default function Board({
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [gameStatus])
+  }, [gameStatus, isSavingEnd, cells])
 
   useEffect(() => {
     if (overlayType !== 'boom') return
@@ -683,8 +701,9 @@ export default function Board({
   }
 
   const returnToReady = async () => {
-    const confirmedCells = cloneCells(cells)
+    if (isSavingEnd) return
   
+    const confirmedCells = cloneCells(cells)
     const playerName = challenge.selectedPlayer
   
     const nextParticipants =
@@ -692,35 +711,43 @@ export default function Board({
         ? [...challenge.participants, playerName]
         : challenge.participants
   
-    const nextChallenge: ChallengeDocument = {
-      ...challenge,
-      participants: nextParticipants,
-      selectedPlayer: null,
-      status: 'ready',
-      remainingSeconds: TIME_LIMIT_SECONDS,
-      cells: confirmedCells,
-      confirmedCells,
-    }
-  
-    setGameStatus('ready')
-    setRemainingSeconds(TIME_LIMIT_SECONDS)
     setOverlayType('quit')
-    setChallenge(nextChallenge)
-    setCells(confirmedCells)
-    setBoardReady(confirmedCells.some((cell) => cell.opened))
+    setIsSavingEnd(true)
   
-    await updateCurrentChallenge({
-      participants: nextParticipants,
-      selectedPlayer: null,
-      status: 'ready',
-      remainingSeconds: TIME_LIMIT_SECONDS,
-      cells: confirmedCells,
-      confirmedCells,
-    })
+    try {
+      await updateCurrentChallenge({
+        participants: nextParticipants,
+        selectedPlayer: null,
+        status: 'ready',
+        remainingSeconds: TIME_LIMIT_SECONDS,
+        cells: confirmedCells,
+        confirmedCells,
+      })
   
-    window.setTimeout(() => {
-      setOverlayType(null)
-    }, 2000)
+      const nextChallenge: ChallengeDocument = {
+        ...challenge,
+        participants: nextParticipants,
+        selectedPlayer: null,
+        status: 'ready',
+        remainingSeconds: TIME_LIMIT_SECONDS,
+        cells: confirmedCells,
+        confirmedCells,
+      }
+  
+      setChallenge(nextChallenge)
+      setCells(confirmedCells)
+      setGameStatus('ready')
+      setRemainingSeconds(TIME_LIMIT_SECONDS)
+      setBoardReady(confirmedCells.some((cell) => cell.opened))
+  
+      window.setTimeout(() => {
+        setOverlayType(null)
+        setIsSavingEnd(false)
+      }, 2000)
+    } catch (error) {
+      console.error('プレイ終了状態の保存に失敗しました', error)
+      setIsSavingEnd(false)
+    }
   }
 
   const canOperate =
@@ -830,6 +857,7 @@ export default function Board({
           overlayType={overlayType}
           explosionCount={challenge.explosionCount}
           onNextChallenge={startNextChallenge}
+          isSavingEnd={isSavingEnd}
         />
       </div>
   
